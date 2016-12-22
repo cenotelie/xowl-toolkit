@@ -27,7 +27,7 @@ import org.apache.maven.plugins.annotations.Mojo;
  *
  * @author Laurent Wouters
  */
-@Mojo(name = "xowl-builder")
+@Mojo(name = "package")
 public class BuilderMojo extends AbstractMojo {
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
