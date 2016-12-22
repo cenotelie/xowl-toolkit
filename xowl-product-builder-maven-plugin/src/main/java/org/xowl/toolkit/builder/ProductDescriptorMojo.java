@@ -36,8 +36,8 @@ import java.nio.charset.Charset;
  *
  * @author Laurent Wouters
  */
-@Mojo(name = "package")
-public class BuilderMojo extends AbstractMojo {
+@Mojo(name = "descriptor")
+public class ProductDescriptorMojo extends AbstractMojo {
     /**
      * The model for the current project
      */
