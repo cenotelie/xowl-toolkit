@@ -71,12 +71,14 @@ public class ProductDescriptorMojo extends AbstractMojo {
             }
             writer.write("\t},");
             writer.write("\t\"bundles\": [\n");
-            for (int i = 0; i != bundles.length; i++) {
-                writer.write("\t\t{\n");
-                writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(bundles[i].groupId) + "\",\n");
-                writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(bundles[i].artifactId) + "\",\n");
-                writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(bundles[i].version) + "\"\n");
-                writer.write("\t\t},\n");
+            if (bundles != null) {
+                for (int i = 0; i != bundles.length; i++) {
+                    writer.write("\t\t{\n");
+                    writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(bundles[i].groupId) + "\",\n");
+                    writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(bundles[i].artifactId) + "\",\n");
+                    writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(bundles[i].version) + "\"\n");
+                    writer.write("\t\t},\n");
+                }
             }
             writer.write("\t\t{\n");
             writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(model.getGroupId()) + "\",\n");
