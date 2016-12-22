@@ -69,7 +69,7 @@ public class ProductDescriptorMojo extends AbstractMojo {
                 writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getName()) + "\",\n");
                 writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getUrl()) + "\"\n");
             }
-            writer.write("\t},");
+            writer.write("\t},\n");
             writer.write("\t\"bundles\": [\n");
             if (bundles != null) {
                 for (int i = 0; i != bundles.length; i++) {
@@ -84,8 +84,8 @@ public class ProductDescriptorMojo extends AbstractMojo {
             writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(model.getGroupId()) + "\",\n");
             writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(model.getArtifactId()) + "\",\n");
             writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\"\n");
-            writer.write("\t\t},\n");
-            writer.write("\t]");
+            writer.write("\t\t}\n");
+            writer.write("\t]\n");
             writer.write("}\n");
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the product description", exception);
