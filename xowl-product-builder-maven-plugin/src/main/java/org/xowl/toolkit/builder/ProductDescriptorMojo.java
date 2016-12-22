@@ -44,23 +44,22 @@ public class ProductDescriptorMojo extends AbstractMojo {
     @Parameter(readonly = true, defaultValue = "${project.model}")
     private Model model;
 
+    /**
+     * The additional bundles for the product
+     */
+    @Parameter
+    private Bundle[] bundles;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         File targetDirectory = new File(model.getBuild().getDirectory());
         File productFile = new File(targetDirectory, model.getArtifactId() + "-" + model.getVersion() + ".product");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(productFile), Charset.forName("UTF-8"))) {
             writer.write("{\n");
-            writer.write("\t\"type\": \"org.xowl.infra.utils.product.Product\",\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId()) + "\",\n");
             writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(model.getName()) + "\",\n");
             writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(model.getDescription()) + "\",\n");
-            writer.write("\t\"version\": {\n");
-            writer.write("\t\t\"number\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\",\n");
-            writer.write("\t\t\"scmTag\": \"\",\n");
-            writer.write("\t\t\"buildUser\": \"\",\n");
-            writer.write("\t\t\"buildTag\": \"\",\n");
-            writer.write("\t\t\"buildTimestamp\": \"\"\n");
-            writer.write("\t},\n");
+            writer.write("\t\"version\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\",\n");
             writer.write("\t\"copyright\": \"Copyright (c) " + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
             writer.write("\t\"vendor\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
             writer.write("\t\"vendorLink\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getUrl()) + "\",\n");
@@ -70,7 +69,21 @@ public class ProductDescriptorMojo extends AbstractMojo {
                 writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getName()) + "\",\n");
                 writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getUrl()) + "\"\n");
             }
-            writer.write("\t}\n");
+            writer.write("\t},");
+            writer.write("\t\"bundles\": [\n");
+            for (int i = 0; i != bundles.length; i++) {
+                writer.write("\t\t{\n");
+                writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(bundles[i].groupId) + "\",\n");
+                writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(bundles[i].artifactId) + "\",\n");
+                writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(bundles[i].version) + "\"\n");
+                writer.write("\t\t},\n");
+            }
+            writer.write("\t\t{\n");
+            writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(model.getGroupId()) + "\",\n");
+            writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(model.getArtifactId()) + "\",\n");
+            writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\"\n");
+            writer.write("\t\t},\n");
+            writer.write("\t]");
             writer.write("}\n");
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the product description", exception);
