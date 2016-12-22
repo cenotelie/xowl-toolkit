@@ -23,8 +23,16 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.impl.ArtifactResolver;
+import org.eclipse.aether.resolution.ArtifactRequest;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
+import org.eclipse.aether.resolution.ArtifactResult;
 import org.xowl.infra.utils.TextUtils;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -39,6 +47,18 @@ import java.nio.charset.Charset;
 @Mojo(name = "descriptor")
 public class ProductDescriptorMojo extends AbstractMojo {
     /**
+     * The current artifact resolve
+     */
+    @Inject
+    protected ArtifactResolver artifactResolver;
+
+    /**
+     * The current repository/network configuration of Maven.
+     */
+    @Parameter(defaultValue = "${repositorySystemSession}")
+    protected RepositorySystemSession repositorySystemSession;
+
+    /**
      * The model for the current project
      */
     @Parameter(readonly = true, defaultValue = "${project.model}")
@@ -52,6 +72,18 @@ public class ProductDescriptorMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        File descriptor = writeDescritor();
+        File[] files = retrieveBundles();
+        buildPackage(descriptor, files);
+    }
+
+    /**
+     * Writes the product descriptor
+     *
+     * @return The file for the descriptor
+     * @throws MojoFailureException When writing failed
+     */
+    private File writeDescritor() throws MojoFailureException {
         File targetDirectory = new File(model.getBuild().getDirectory());
         File productFile = new File(targetDirectory, model.getArtifactId() + "-" + model.getVersion() + ".product");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(productFile), Charset.forName("UTF-8"))) {
@@ -90,5 +122,57 @@ public class ProductDescriptorMojo extends AbstractMojo {
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the product description", exception);
         }
+        return productFile;
+    }
+
+    /**
+     * Retrieves the bundles for the product
+     *
+     * @throws MojoFailureException When the resolution failed
+     */
+    private File[] retrieveBundles() throws MojoFailureException {
+        if (bundles != null) {
+            File[] result = new File[bundles.length];
+            for (int i = 0; i != bundles.length; i++) {
+                result[i] = retrieveBundle(bundles[i]);
+            }
+            return result;
+        }
+        return null;
+    }
+
+    /**
+     * Retrieves a bundle for the product
+     *
+     * @param bundle The bundle to retrieve
+     * @return The file for the bundle
+     * @throws MojoFailureException When the resolution failed
+     */
+    private File retrieveBundle(Bundle bundle) throws MojoFailureException {
+        Artifact artifact = new DefaultArtifact(
+                bundle.groupId,
+                bundle.artifactId,
+                "jar",
+                bundle.version
+        );
+        try {
+            ArtifactResult result = artifactResolver.resolveArtifact(repositorySystemSession, new ArtifactRequest(artifact, null, null));
+            if (!result.isResolved()) {
+                throw new MojoFailureException("Failed to resolve artifact " + bundle.groupId + "." + bundle.artifactId + "-" + bundle.version);
+            }
+            return result.getArtifact().getFile();
+        } catch (ArtifactResolutionException exception) {
+            throw new MojoFailureException("Failed to resolve artifact " + bundle.groupId + "." + bundle.artifactId + "-" + bundle.version, exception);
+        }
+    }
+
+    /**
+     * Builds the package for the product
+     *
+     * @param descriptor The file for the descriptor
+     * @param files      The files for the bundles
+     * @throws MojoFailureException When the packaging failed
+     */
+    private void buildPackage(File descriptor, File[] files) throws MojoFailureException {
     }
 }
