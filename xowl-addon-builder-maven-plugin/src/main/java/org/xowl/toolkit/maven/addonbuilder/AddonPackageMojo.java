@@ -130,10 +130,13 @@ public class AddonPackageMojo extends AbstractMojo {
             } catch (IOException exception) {
                 throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
             }
+        } else {
+            getLog().warn("No icon has been specified");
         }
 
         File targetDirectory = new File(model.getBuild().getDirectory());
         File addonDescriptor = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-addon.descriptor");
+        getLog().info("Writing descriptor for addon: " + addonDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId()) + "\",\n");
@@ -206,6 +209,7 @@ public class AddonPackageMojo extends AbstractMojo {
      * @throws MojoFailureException When the resolution failed
      */
     private File retrieveBundle(Bundle bundle) throws MojoFailureException {
+        getLog().info("Resolving artifact: " + bundle.groupId + "." + bundle.artifactId + "-" + bundle.version);
         Artifact artifact = new DefaultArtifact(
                 bundle.groupId,
                 bundle.artifactId,
@@ -234,6 +238,7 @@ public class AddonPackageMojo extends AbstractMojo {
     private void buildPackage(File fileDescriptor, File fileMain, File[] fileBundles) throws MojoFailureException {
         File targetDirectory = new File(model.getBuild().getDirectory());
         File addonPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-addon.zip");
+        getLog().info("Writing package for addon: " + addonPackage.getName());
         try (FileOutputStream fileStream = new FileOutputStream(addonPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
                 buildPackageAddFile(
@@ -268,6 +273,7 @@ public class AddonPackageMojo extends AbstractMojo {
      * @throws MojoFailureException When the packaging failed
      */
     private void buildPackageAddFile(ZipOutputStream stream, File file, String entryName) throws IOException, MojoFailureException {
+        getLog().info("Adding package entry " + entryName + " for file " + file.getAbsolutePath());
         stream.putNextEntry(new ZipEntry(entryName));
         byte[] bytes;
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
