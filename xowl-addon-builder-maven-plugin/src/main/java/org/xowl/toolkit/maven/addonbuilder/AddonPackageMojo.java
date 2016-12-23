@@ -69,13 +69,31 @@ public class AddonPackageMojo extends AbstractMojo {
     protected Model model;
 
     /**
-     * The path to the icon for the product
+     * The SCM tag (changeset / commit id) for the addon
+     */
+    @Parameter
+    protected String versionScmTag;
+
+    /**
+     * The build tag for the addon
+     */
+    @Parameter
+    protected String versionBuildTag;
+
+    /**
+     * The build timestamp for the addon
+     */
+    @Parameter
+    protected String versionBuildTimestamp;
+
+    /**
+     * The path to the icon for the addon
      */
     @Parameter
     protected String icon;
 
     /**
-     * The additional bundles for the product
+     * The additional bundles for the addon
      */
     @Parameter
     protected Bundle[] bundles;
@@ -88,42 +106,43 @@ public class AddonPackageMojo extends AbstractMojo {
     }
 
     /**
-     * Gets the serialization of the icon, if any
-     *
-     * @return The serialized icon
-     * @throws MojoFailureException When the file cannot be read
-     */
-    private String getIcon() throws MojoFailureException {
-        if (icon == null || icon.isEmpty())
-            return "";
-        File directory = new File(model.getBuild().getDirectory());
-        File fileIcon = new File(directory.getParentFile(), icon);
-        try (InputStream stream = new FileInputStream(fileIcon)) {
-            byte[] bytes = Files.load(stream);
-            return Base64.encodeBase64(bytes);
-        } catch (IOException exception) {
-            throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
-        }
-    }
-
-    /**
-     * Writes the product descriptor
+     * Writes the addon descriptor
      *
      * @return The file for the descriptor
      * @throws MojoFailureException When writing failed
      */
     private File writeDescritor() throws MojoFailureException {
-        String icon = getIcon();
+        String iconName = "";
+        String iconContent = "";
+        if (icon != null && !icon.isEmpty()) {
+            File directory = new File(model.getBuild().getDirectory());
+            File fileIcon = new File(directory.getParentFile(), icon);
+            try (InputStream stream = new FileInputStream(fileIcon)) {
+                byte[] bytes = Files.load(stream);
+                iconContent = Base64.encodeBase64(bytes);
+                iconName = fileIcon.getName();
+            } catch (IOException exception) {
+                throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
+            }
+        }
+
         File targetDirectory = new File(model.getBuild().getDirectory());
-        File productFile = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".descriptor");
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(productFile), Charset.forName("UTF-8"))) {
+        File addonDescriptor = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".descriptor");
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId()) + "\",\n");
             writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(model.getName()) + "\",\n");
             writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(model.getDescription()) + "\",\n");
-            writer.write("\t\"version\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\",\n");
+            writer.write("\t\"version\": {\n");
+            writer.write("\t\t\"number\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\",\n");
+            writer.write("\t\t\"scmTag\": \"" + (versionScmTag == null ? "" : TextUtils.escapeStringJSON(versionScmTag)) + "\",\n");
+            writer.write("\t\t\"buildUser\": \"\",\n");
+            writer.write("\t\t\"buildTag\": \"" + (versionBuildTag == null ? "" : TextUtils.escapeStringJSON(versionBuildTag)) + "\",\n");
+            writer.write("\t\t\"buildTimestamp\": \"" + (versionBuildTimestamp == null ? "" : TextUtils.escapeStringJSON(versionBuildTimestamp)) + "\"\n");
+            writer.write("\t},\n");
             writer.write("\t\"copyright\": \"Copyright (c) " + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
-            writer.write("\t\"icon\": \"" + icon + "\",\n");
+            writer.write("\t\"iconName\": \"" + iconName + "\",\n");
+            writer.write("\t\"iconContent\": \"" + iconContent + "\",\n");
             writer.write("\t\"vendor\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
             writer.write("\t\"vendorLink\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getUrl()) + "\",\n");
             writer.write("\t\"link\": \"" + TextUtils.escapeStringJSON(model.getUrl()) + "\",\n");
@@ -151,13 +170,13 @@ public class AddonPackageMojo extends AbstractMojo {
             writer.write("\t]\n");
             writer.write("}\n");
         } catch (IOException exception) {
-            throw new MojoFailureException("Failed to write the product description", exception);
+            throw new MojoFailureException("Failed to write the addon description", exception);
         }
-        return productFile;
+        return addonDescriptor;
     }
 
     /**
-     * Retrieves the bundles for the product
+     * Retrieves the bundles for the addon
      *
      * @throws MojoFailureException When the resolution failed
      */
@@ -173,7 +192,7 @@ public class AddonPackageMojo extends AbstractMojo {
     }
 
     /**
-     * Retrieves a bundle for the product
+     * Retrieves a bundle for the addon
      *
      * @param bundle The bundle to retrieve
      * @return The file for the bundle
@@ -198,7 +217,7 @@ public class AddonPackageMojo extends AbstractMojo {
     }
 
     /**
-     * Builds the package for the product
+     * Builds the package for the addon
      *
      * @param fileDescriptor The file for the descriptor
      * @param fileMain       The file for the main bundle
@@ -207,8 +226,8 @@ public class AddonPackageMojo extends AbstractMojo {
      */
     private void buildPackage(File fileDescriptor, File fileMain, File[] fileBundles) throws MojoFailureException {
         File targetDirectory = new File(model.getBuild().getDirectory());
-        File productPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-product.zip");
-        try (FileOutputStream fileStream = new FileOutputStream(productPackage)) {
+        File addonPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-addon.zip");
+        try (FileOutputStream fileStream = new FileOutputStream(addonPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
                 buildPackageAddFile(
                         stream,
@@ -228,7 +247,7 @@ public class AddonPackageMojo extends AbstractMojo {
                 }
             }
         } catch (IOException exception) {
-            throw new MojoFailureException("Failed to write the product package", exception);
+            throw new MojoFailureException("Failed to write the addon package", exception);
         }
     }
 
