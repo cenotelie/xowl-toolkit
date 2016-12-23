@@ -241,6 +241,7 @@ public class AddonPackageMojo extends AbstractMojo {
         getLog().info("Writing package for addon: " + addonPackage.getName());
         try (FileOutputStream fileStream = new FileOutputStream(addonPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
+                stream.setLevel(9);
                 buildPackageAddFile(
                         stream,
                         fileDescriptor,
@@ -274,6 +275,8 @@ public class AddonPackageMojo extends AbstractMojo {
      */
     private void buildPackageAddFile(ZipOutputStream stream, File file, String entryName) throws IOException, MojoFailureException {
         getLog().info("Adding package entry " + entryName + " for file " + file.getAbsolutePath());
+        ZipEntry entry = new ZipEntry(entryName);
+        entry.setMethod(ZipEntry.DEFLATED);
         stream.putNextEntry(new ZipEntry(entryName));
         byte[] bytes;
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
