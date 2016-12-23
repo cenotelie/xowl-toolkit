@@ -93,6 +93,12 @@ public class AddonPackageMojo extends AbstractMojo {
     protected String icon;
 
     /**
+     * The description of the pricing policy for the addon
+     */
+    @Parameter
+    protected String pricing;
+
+    /**
      * The additional bundles for the addon
      */
     @Parameter
@@ -152,6 +158,7 @@ public class AddonPackageMojo extends AbstractMojo {
                 writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getUrl()) + "\"\n");
             }
             writer.write("\t},\n");
+            writer.write("\t\"pricing\": \"" + (pricing == null ? "" : TextUtils.escapeStringJSON(pricing)) + "\",\n");
             writer.write("\t\"bundles\": [\n");
             if (bundles != null) {
                 for (int i = 0; i != bundles.length; i++) {
