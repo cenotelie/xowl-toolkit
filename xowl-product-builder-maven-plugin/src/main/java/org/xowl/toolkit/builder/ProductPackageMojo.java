@@ -21,6 +21,8 @@ import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Execute;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.aether.RepositorySystemSession;
@@ -30,22 +32,24 @@ import org.eclipse.aether.impl.ArtifactResolver;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
+import org.xowl.infra.utils.Base64;
+import org.xowl.infra.utils.Files;
 import org.xowl.infra.utils.TextUtils;
 
 import javax.inject.Inject;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.Charset;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
- * The Mojo for the xOWL product builder
+ * Builds the xOWL product package that can be deployed onto a marketplace so that xOWL federation platforms can use it.
  *
  * @author Laurent Wouters
  */
-@Mojo(name = "descriptor")
-public class ProductDescriptorMojo extends AbstractMojo {
+@Execute(goal = "product-package", phase = LifecyclePhase.PACKAGE)
+@Mojo(name = "product-package", defaultPhase = LifecyclePhase.PACKAGE)
+public class ProductPackageMojo extends AbstractMojo {
     /**
      * The current artifact resolve
      */
@@ -62,19 +66,43 @@ public class ProductDescriptorMojo extends AbstractMojo {
      * The model for the current project
      */
     @Parameter(readonly = true, defaultValue = "${project.model}")
-    private Model model;
+    protected Model model;
+
+    /**
+     * The path to the icon for the product
+     */
+    @Parameter
+    protected String icon;
 
     /**
      * The additional bundles for the product
      */
     @Parameter
-    private Bundle[] bundles;
+    protected Bundle[] bundles;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         File descriptor = writeDescritor();
         File[] files = retrieveBundles();
-        buildPackage(descriptor, files);
+        buildPackage(descriptor, new File(model.getArtifactId() + "-" + model.getVersion() + ".jar"), files);
+    }
+
+    /**
+     * Gets the serialization of the icon, if any
+     *
+     * @return The serialized icon
+     * @throws MojoFailureException When the file cannot be read
+     */
+    private String getIcon() throws MojoFailureException {
+        if (icon == null || icon.isEmpty())
+            return "";
+        File fileIcon = new File(model.getBuild().getSourceDirectory(), icon);
+        try (InputStream stream = new FileInputStream(fileIcon)) {
+            byte[] bytes = Files.load(stream);
+            return Base64.encodeBase64(bytes);
+        } catch (IOException exception) {
+            throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
+        }
     }
 
     /**
@@ -84,8 +112,9 @@ public class ProductDescriptorMojo extends AbstractMojo {
      * @throws MojoFailureException When writing failed
      */
     private File writeDescritor() throws MojoFailureException {
+        String icon = getIcon();
         File targetDirectory = new File(model.getBuild().getDirectory());
-        File productFile = new File(targetDirectory, model.getArtifactId() + "-" + model.getVersion() + ".product");
+        File productFile = new File(targetDirectory, model.getArtifactId() + "-" + model.getVersion() + ".descriptor");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(productFile), Charset.forName("UTF-8"))) {
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId()) + "\",\n");
@@ -93,6 +122,7 @@ public class ProductDescriptorMojo extends AbstractMojo {
             writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(model.getDescription()) + "\",\n");
             writer.write("\t\"version\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\",\n");
             writer.write("\t\"copyright\": \"Copyright (c) " + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
+            writer.write("\t\"icon\": \"" + icon + "\",\n");
             writer.write("\t\"vendor\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
             writer.write("\t\"vendorLink\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getUrl()) + "\",\n");
             writer.write("\t\"link\": \"" + TextUtils.escapeStringJSON(model.getUrl()) + "\",\n");
@@ -169,10 +199,41 @@ public class ProductDescriptorMojo extends AbstractMojo {
     /**
      * Builds the package for the product
      *
-     * @param descriptor The file for the descriptor
-     * @param files      The files for the bundles
+     * @param fileDescriptor The file for the descriptor
+     * @param fileMain       The file for the main bundle
+     * @param fileBundles    The files for the other bundles
      * @throws MojoFailureException When the packaging failed
      */
-    private void buildPackage(File descriptor, File[] files) throws MojoFailureException {
+    private void buildPackage(File fileDescriptor, File fileMain, File[] fileBundles) throws MojoFailureException {
+        File targetDirectory = new File(model.getBuild().getDirectory());
+        File productPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-product.zip");
+        try (FileOutputStream fileStream = new FileOutputStream(productPackage)) {
+            try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
+                buildPackageAddFile(stream, fileDescriptor);
+                buildPackageAddFile(stream, fileMain);
+                for (File fileBundle : fileBundles) {
+                    buildPackageAddFile(stream, fileBundle);
+                }
+            }
+        } catch (IOException exception) {
+            throw new MojoFailureException("Failed to write the product package", exception);
+        }
+    }
+
+    /**
+     * Adds a file to the package
+     *
+     * @param stream The stream to the package
+     * @param file   The file to add
+     * @throws IOException When an IO operation failed
+     */
+    private void buildPackageAddFile(ZipOutputStream stream, File file) throws IOException {
+        stream.putNextEntry(new ZipEntry(file.getName()));
+        byte[] bytes;
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
+            bytes = Files.load(fileInputStream);
+        }
+        stream.write(bytes, 0, bytes.length);
+        stream.closeEntry();
     }
 }
