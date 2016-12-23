@@ -218,11 +218,13 @@ public class ProductPackageMojo extends AbstractMojo {
                         stream,
                         fileMain,
                         model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".jar");
-                for (int i = 0; i != bundles.length; i++) {
-                    buildPackageAddFile(
-                            stream,
-                            fileBundles[i],
-                            bundles[i].groupId + "." + bundles[i].artifactId + "-" + bundles[i].version + ".jar");
+                if (bundles != null) {
+                    for (int i = 0; i != bundles.length; i++) {
+                        buildPackageAddFile(
+                                stream,
+                                fileBundles[i],
+                                bundles[i].groupId + "." + bundles[i].artifactId + "-" + bundles[i].version + ".jar");
+                    }
                 }
             }
         } catch (IOException exception) {
