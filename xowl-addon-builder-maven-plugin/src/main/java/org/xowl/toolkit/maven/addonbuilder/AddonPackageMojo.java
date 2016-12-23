@@ -15,7 +15,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package org.xowl.toolkit.builder;
+package org.xowl.toolkit.maven.addonbuilder;
 
 import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
@@ -43,13 +43,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Builds the xOWL product package that can be deployed onto a marketplace so that xOWL federation platforms can use it.
+ * Builds the xOWL addon package that can be deployed onto a marketplace so that xOWL federation platforms can use it.
  *
  * @author Laurent Wouters
  */
-@Execute(goal = "product-package", phase = LifecyclePhase.PACKAGE)
-@Mojo(name = "product-package", defaultPhase = LifecyclePhase.PACKAGE)
-public class ProductPackageMojo extends AbstractMojo {
+@Execute(goal = "addon-package", phase = LifecyclePhase.PACKAGE)
+@Mojo(name = "addon-package", defaultPhase = LifecyclePhase.PACKAGE)
+public class AddonPackageMojo extends AbstractMojo {
     /**
      * The current artifact resolve
      */

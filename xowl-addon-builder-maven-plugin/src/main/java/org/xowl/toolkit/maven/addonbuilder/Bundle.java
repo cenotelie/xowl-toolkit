@@ -15,7 +15,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package org.xowl.toolkit.builder;
+package org.xowl.toolkit.maven.addonbuilder;
 
 /**
  * Represents a bundle that is part of a product
