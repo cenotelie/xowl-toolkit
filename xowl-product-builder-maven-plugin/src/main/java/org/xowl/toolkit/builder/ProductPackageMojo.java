@@ -115,7 +115,7 @@ public class ProductPackageMojo extends AbstractMojo {
     private File writeDescritor() throws MojoFailureException {
         String icon = getIcon();
         File targetDirectory = new File(model.getBuild().getDirectory());
-        File productFile = new File(targetDirectory, model.getArtifactId() + "-" + model.getVersion() + ".descriptor");
+        File productFile = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".descriptor");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(productFile), Charset.forName("UTF-8"))) {
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId()) + "\",\n");
@@ -210,8 +210,14 @@ public class ProductPackageMojo extends AbstractMojo {
         File productPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-product.zip");
         try (FileOutputStream fileStream = new FileOutputStream(productPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
-                buildPackageAddFile(stream, fileDescriptor, fileDescriptor.getName());
-                buildPackageAddFile(stream, fileMain, fileMain.getName());
+                buildPackageAddFile(
+                        stream,
+                        fileDescriptor,
+                        "descriptor.json");
+                buildPackageAddFile(
+                        stream,
+                        fileMain,
+                        model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".jar");
                 for (int i = 0; i != bundles.length; i++) {
                     buildPackageAddFile(
                             stream,
