@@ -127,7 +127,7 @@ public class AddonPackageMojo extends AbstractMojo {
         }
 
         File targetDirectory = new File(model.getBuild().getDirectory());
-        File addonDescriptor = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".descriptor");
+        File addonDescriptor = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-addon.descriptor");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId()) + "\",\n");
