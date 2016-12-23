@@ -84,7 +84,7 @@ public class ProductPackageMojo extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         File descriptor = writeDescritor();
         File[] files = retrieveBundles();
-        buildPackage(descriptor, new File(model.getArtifactId() + "-" + model.getVersion() + ".jar"), files);
+        buildPackage(descriptor, new File(model.getBuild().getDirectory(), model.getArtifactId() + "-" + model.getVersion() + ".jar"), files);
     }
 
     /**
@@ -96,7 +96,8 @@ public class ProductPackageMojo extends AbstractMojo {
     private String getIcon() throws MojoFailureException {
         if (icon == null || icon.isEmpty())
             return "";
-        File fileIcon = new File(model.getBuild().getSourceDirectory(), icon);
+        File directory = new File(model.getBuild().getDirectory());
+        File fileIcon = new File(directory.getParentFile(), icon);
         try (InputStream stream = new FileInputStream(fileIcon)) {
             byte[] bytes = Files.load(stream);
             return Base64.encodeBase64(bytes);
@@ -209,10 +210,13 @@ public class ProductPackageMojo extends AbstractMojo {
         File productPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-product.zip");
         try (FileOutputStream fileStream = new FileOutputStream(productPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
-                buildPackageAddFile(stream, fileDescriptor);
-                buildPackageAddFile(stream, fileMain);
-                for (File fileBundle : fileBundles) {
-                    buildPackageAddFile(stream, fileBundle);
+                buildPackageAddFile(stream, fileDescriptor, fileDescriptor.getName());
+                buildPackageAddFile(stream, fileMain, fileMain.getName());
+                for (int i = 0; i != bundles.length; i++) {
+                    buildPackageAddFile(
+                            stream,
+                            fileBundles[i],
+                            bundles[i].groupId + "." + bundles[i].artifactId + "-" + bundles[i].version + ".jar");
                 }
             }
         } catch (IOException exception) {
@@ -223,15 +227,19 @@ public class ProductPackageMojo extends AbstractMojo {
     /**
      * Adds a file to the package
      *
-     * @param stream The stream to the package
-     * @param file   The file to add
-     * @throws IOException When an IO operation failed
+     * @param stream    The stream to the package
+     * @param file      The file to add
+     * @param entryName The name of the zip entry
+     * @throws IOException          When an IO operation failed
+     * @throws MojoFailureException When the packaging failed
      */
-    private void buildPackageAddFile(ZipOutputStream stream, File file) throws IOException {
-        stream.putNextEntry(new ZipEntry(file.getName()));
+    private void buildPackageAddFile(ZipOutputStream stream, File file, String entryName) throws IOException, MojoFailureException {
+        stream.putNextEntry(new ZipEntry(entryName));
         byte[] bytes;
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
             bytes = Files.load(fileInputStream);
+        } catch (FileNotFoundException exception) {
+            throw new MojoFailureException("Cannot read file " + file.getAbsolutePath());
         }
         stream.write(bytes, 0, bytes.length);
         stream.closeEntry();
