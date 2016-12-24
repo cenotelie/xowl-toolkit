@@ -15,24 +15,28 @@
  * If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package org.xowl.toolkit.maven.addonbuilder;
+package org.xowl.toolkit.maven.marketplacebuilder;
 
 /**
- * Represents a bundle that is part of an addon
+ * Represents the information about an addon that is part of a marketplace
  *
  * @author Laurent Wouters
  */
-public class Bundle {
+public class Addon {
     /**
-     * The group id for the bundle
+     * The group id for the addon
      */
     public String groupId;
     /**
-     * The artifact id for the bundle
+     * The artifact id for the addon
      */
     public String artifactId;
     /**
-     * The version for the bundle
+     * The version for the addon
      */
     public String version;
+    /**
+     * The identifiers of the categories for this addon
+     */
+    public String[] categories;
 }
