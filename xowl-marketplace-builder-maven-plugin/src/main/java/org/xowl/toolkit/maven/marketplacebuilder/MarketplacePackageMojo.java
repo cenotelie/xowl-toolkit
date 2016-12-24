@@ -245,12 +245,17 @@ public class MarketplacePackageMojo extends AbstractMojo {
                         stream,
                         fileDescriptor,
                         "marketplace.json");
-                if (fileAddons != null) {
-                    for (int i = 0; i != fileAddons.length; i++) {
+                if (addons != null) {
+                    int j = 0;
+                    for (int i = 0; i != addons.length; i++) {
                         buildPackageAddFile(
                                 stream,
-                                fileAddons[i],
-                                fileAddons[i].getName());
+                                fileAddons[j++],
+                                addons[i].groupId + "." + addons[i].artifactId + "-" + addons[i].version + ".descriptor");
+                        buildPackageAddFile(
+                                stream,
+                                fileAddons[j++],
+                                addons[i].groupId + "." + addons[i].artifactId + "-" + addons[i].version + ".zip");
                     }
                 }
             }
