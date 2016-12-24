@@ -93,9 +93,14 @@ public class MarketplacePackageMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        File targetDirectory = new File(project.getModel().getBuild().getDirectory());
+        if (!targetDirectory.exists()) {
+            if (!targetDirectory.mkdirs())
+                throw new MojoFailureException("Failed to create target directory");
+        }
         File fileDescriptor = writeDescriptor();
         File[] fileAddons = retrieveAddons();
-
+        buildPackage(fileDescriptor, fileAddons);
     }
 
     /**
@@ -131,6 +136,7 @@ public class MarketplacePackageMojo extends AbstractMojo {
                         writer.write("\t\t},\n");
                 }
             }
+            writer.write("\t],\n");
             writer.write("\t\"addons\": [\n");
             if (addons != null) {
                 for (int i = 0; i != addons.length; i++) {
