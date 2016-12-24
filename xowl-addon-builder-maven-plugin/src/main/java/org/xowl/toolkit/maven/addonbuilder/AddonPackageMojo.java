@@ -17,14 +17,12 @@
 
 package org.xowl.toolkit.maven.addonbuilder;
 
-import org.apache.maven.model.Model;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Execute;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
@@ -50,6 +48,10 @@ import java.util.zip.ZipOutputStream;
 @Execute(goal = "addon-package", phase = LifecyclePhase.PACKAGE)
 @Mojo(name = "addon-package", defaultPhase = LifecyclePhase.PACKAGE)
 public class AddonPackageMojo extends AbstractMojo {
+    /*
+     * The various required components
+     */
+
     /**
      * The current artifact resolve
      */
@@ -63,10 +65,20 @@ public class AddonPackageMojo extends AbstractMojo {
     protected RepositorySystemSession repositorySystemSession;
 
     /**
-     * The model for the current project
+     * Maven project helper
      */
-    @Parameter(readonly = true, defaultValue = "${project.model}")
-    protected Model model;
+    @Component
+    protected MavenProjectHelper projectHelper;
+
+    /**
+     * The current Maven project
+     */
+    @Parameter(readonly = true, defaultValue = "${project}", required = true)
+    protected MavenProject project;
+
+    /*
+     * The parameters for this Mojo
+     */
 
     /**
      * The SCM tag (changeset / commit id) for the addon
@@ -106,9 +118,18 @@ public class AddonPackageMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        File descriptor = writeDescritor();
+        File descriptor = writeDescriptor();
         File[] files = retrieveBundles();
-        buildPackage(descriptor, new File(model.getBuild().getDirectory(), model.getArtifactId() + "-" + model.getVersion() + ".jar"), files);
+        buildPackage(descriptor, new File(project.getModel().getBuild().getDirectory(), getArtifactName() + ".jar"), files);
+    }
+
+    /**
+     * Gets the prefix name of artifacts
+     *
+     * @return The prefix name
+     */
+    private String getArtifactName() {
+        return project.getModel().getArtifactId() + "-" + project.getModel().getVersion();
     }
 
     /**
@@ -117,11 +138,11 @@ public class AddonPackageMojo extends AbstractMojo {
      * @return The file for the descriptor
      * @throws MojoFailureException When writing failed
      */
-    private File writeDescritor() throws MojoFailureException {
+    private File writeDescriptor() throws MojoFailureException {
         String iconName = "";
         String iconContent = "";
         if (icon != null && !icon.isEmpty()) {
-            File directory = new File(model.getBuild().getDirectory());
+            File directory = new File(project.getModel().getBuild().getDirectory());
             File fileIcon = new File(directory.getParentFile(), icon);
             try (InputStream stream = new FileInputStream(fileIcon)) {
                 byte[] bytes = Files.load(stream);
@@ -134,31 +155,31 @@ public class AddonPackageMojo extends AbstractMojo {
             getLog().warn("No icon has been specified");
         }
 
-        File targetDirectory = new File(model.getBuild().getDirectory());
-        File addonDescriptor = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-addon.descriptor");
+        File targetDirectory = new File(project.getModel().getBuild().getDirectory());
+        File addonDescriptor = new File(targetDirectory, getArtifactName() + "-addon-descriptor.json");
         getLog().info("Writing descriptor for addon: " + addonDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
-            writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion()) + "\",\n");
-            writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(model.getName()) + "\",\n");
-            writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(model.getDescription()) + "\",\n");
+            writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion()) + "\",\n");
+            writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getName()) + "\",\n");
+            writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(project.getModel().getDescription()) + "\",\n");
             writer.write("\t\"version\": {\n");
-            writer.write("\t\t\"number\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\",\n");
+            writer.write("\t\t\"number\": \"" + TextUtils.escapeStringJSON(project.getModel().getVersion()) + "\",\n");
             writer.write("\t\t\"scmTag\": \"" + (versionScmTag == null ? "" : TextUtils.escapeStringJSON(versionScmTag)) + "\",\n");
             writer.write("\t\t\"buildUser\": \"\",\n");
             writer.write("\t\t\"buildTag\": \"" + (versionBuildTag == null ? "" : TextUtils.escapeStringJSON(versionBuildTag)) + "\",\n");
             writer.write("\t\t\"buildTimestamp\": \"" + (versionBuildTimestamp == null ? "" : TextUtils.escapeStringJSON(versionBuildTimestamp)) + "\"\n");
             writer.write("\t},\n");
-            writer.write("\t\"copyright\": \"Copyright (c) " + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
+            writer.write("\t\"copyright\": \"Copyright (c) " + TextUtils.escapeStringJSON(project.getModel().getOrganization().getName()) + "\",\n");
             writer.write("\t\"iconName\": \"" + iconName + "\",\n");
             writer.write("\t\"iconContent\": \"" + iconContent + "\",\n");
-            writer.write("\t\"vendor\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getName()) + "\",\n");
-            writer.write("\t\"vendorLink\": \"" + TextUtils.escapeStringJSON(model.getOrganization().getUrl()) + "\",\n");
-            writer.write("\t\"link\": \"" + TextUtils.escapeStringJSON(model.getUrl()) + "\",\n");
+            writer.write("\t\"vendor\": \"" + TextUtils.escapeStringJSON(project.getModel().getOrganization().getName()) + "\",\n");
+            writer.write("\t\"vendorLink\": \"" + TextUtils.escapeStringJSON(project.getModel().getOrganization().getUrl()) + "\",\n");
+            writer.write("\t\"link\": \"" + TextUtils.escapeStringJSON(project.getModel().getUrl()) + "\",\n");
             writer.write("\t\"license\": {\n");
-            if (!model.getLicenses().isEmpty()) {
-                writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getName()) + "\",\n");
-                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(model.getLicenses().get(0).getUrl()) + "\"\n");
+            if (!project.getModel().getLicenses().isEmpty()) {
+                writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getName()) + "\",\n");
+                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getUrl()) + "\"\n");
             }
             writer.write("\t},\n");
             writer.write("\t\"pricing\": \"" + (pricing == null ? "" : TextUtils.escapeStringJSON(pricing)) + "\",\n");
@@ -173,12 +194,19 @@ public class AddonPackageMojo extends AbstractMojo {
                 }
             }
             writer.write("\t\t{\n");
-            writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(model.getGroupId()) + "\",\n");
-            writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(model.getArtifactId()) + "\",\n");
-            writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(model.getVersion()) + "\"\n");
+            writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId()) + "\",\n");
+            writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(project.getModel().getArtifactId()) + "\",\n");
+            writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(project.getModel().getVersion()) + "\"\n");
             writer.write("\t\t}\n");
             writer.write("\t]\n");
             writer.write("}\n");
+            // attach the descriptor
+            projectHelper.attachArtifact(
+                    project,
+                    "json",
+                    "addon-descriptor",
+                    addonDescriptor
+            );
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon description", exception);
         }
@@ -236,8 +264,8 @@ public class AddonPackageMojo extends AbstractMojo {
      * @throws MojoFailureException When the packaging failed
      */
     private void buildPackage(File fileDescriptor, File fileMain, File[] fileBundles) throws MojoFailureException {
-        File targetDirectory = new File(model.getBuild().getDirectory());
-        File addonPackage = new File(targetDirectory, model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + "-addon.zip");
+        File targetDirectory = new File(project.getModel().getBuild().getDirectory());
+        File addonPackage = new File(targetDirectory, getArtifactName() + "-addon-package.zip");
         getLog().info("Writing package for addon: " + addonPackage.getName());
         try (FileOutputStream fileStream = new FileOutputStream(addonPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
@@ -249,7 +277,7 @@ public class AddonPackageMojo extends AbstractMojo {
                 buildPackageAddFile(
                         stream,
                         fileMain,
-                        model.getGroupId() + "." + model.getArtifactId() + "-" + model.getVersion() + ".jar");
+                        project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion() + ".jar");
                 if (bundles != null) {
                     for (int i = 0; i != bundles.length; i++) {
                         buildPackageAddFile(
@@ -259,6 +287,13 @@ public class AddonPackageMojo extends AbstractMojo {
                     }
                 }
             }
+            // attach the package
+            projectHelper.attachArtifact(
+                    project,
+                    "zip",
+                    "addon-package",
+                    addonPackage
+            );
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon package", exception);
         }
