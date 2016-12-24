@@ -47,6 +47,11 @@ import java.util.zip.ZipOutputStream;
 @Execute(goal = "marketplace-package", phase = LifecyclePhase.PACKAGE)
 @Mojo(name = "marketplace-package", defaultPhase = LifecyclePhase.PACKAGE)
 public class MarketplacePackageMojo extends AbstractMojo {
+    /**
+     * The version of the descriptor model produced by this plugin
+     */
+    public static final String MODEL_VERSION = "1.0";
+
     /*
      * The various required components
      */
@@ -124,6 +129,7 @@ public class MarketplacePackageMojo extends AbstractMojo {
         getLog().info("Writing descriptor for marketplace: " + marketplaceDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(marketplaceDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
+            writer.write("\t\"modelVersion\": \"" + TextUtils.escapeStringJSON(MODEL_VERSION) + "\",\n");
             writer.write("\t\"categories\": [\n");
             if (categories != null) {
                 for (int i = 0; i != categories.length; i++) {

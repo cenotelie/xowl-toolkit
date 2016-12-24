@@ -48,6 +48,11 @@ import java.util.zip.ZipOutputStream;
 @Execute(goal = "addon-package", phase = LifecyclePhase.PACKAGE)
 @Mojo(name = "addon-package", defaultPhase = LifecyclePhase.PACKAGE)
 public class AddonPackageMojo extends AbstractMojo {
+    /**
+     * The version of the descriptor model produced by this plugin
+     */
+    public static final String MODEL_VERSION = "1.0";
+
     /*
      * The various required components
      */
@@ -160,6 +165,7 @@ public class AddonPackageMojo extends AbstractMojo {
         getLog().info("Writing descriptor for addon: " + addonDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
+            writer.write("\t\"modelVersion\": \"" + TextUtils.escapeStringJSON(MODEL_VERSION) + "\",\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion()) + "\",\n");
             writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getName()) + "\",\n");
             writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(project.getModel().getDescription()) + "\",\n");
