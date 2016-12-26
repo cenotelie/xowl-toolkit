@@ -17,27 +17,18 @@
 
 package org.xowl.toolkit.packaging;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.*;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.MavenProjectHelper;
-import org.eclipse.aether.RepositorySystemSession;
-import org.eclipse.aether.artifact.Artifact;
-import org.eclipse.aether.artifact.DefaultArtifact;
-import org.eclipse.aether.impl.ArtifactResolver;
-import org.eclipse.aether.resolution.ArtifactRequest;
-import org.eclipse.aether.resolution.ArtifactResolutionException;
-import org.eclipse.aether.resolution.ArtifactResult;
+import org.apache.maven.plugins.annotations.Execute;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.xowl.infra.utils.Base64;
 import org.xowl.infra.utils.Files;
 import org.xowl.infra.utils.TextUtils;
 
-import javax.inject.Inject;
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -47,39 +38,11 @@ import java.util.zip.ZipOutputStream;
  */
 @Execute(goal = "addon-package", phase = LifecyclePhase.PACKAGE)
 @Mojo(name = "addon-package", defaultPhase = LifecyclePhase.PACKAGE)
-public class AddonPackageMojo extends AbstractMojo {
+public class AddonPackageMojo extends PackagingAbstractMojo {
     /**
      * The version of the descriptor model produced by this plugin
      */
     public static final String MODEL_VERSION = "1.0";
-
-    /*
-     * The various required components
-     */
-
-    /**
-     * The current artifact resolve
-     */
-    @Inject
-    protected ArtifactResolver artifactResolver;
-
-    /**
-     * The current repository/network configuration of Maven.
-     */
-    @Parameter(defaultValue = "${repositorySystemSession}")
-    protected RepositorySystemSession repositorySystemSession;
-
-    /**
-     * Maven project helper
-     */
-    @Component
-    protected MavenProjectHelper projectHelper;
-
-    /**
-     * The current Maven project
-     */
-    @Parameter(readonly = true, defaultValue = "${project}", required = true)
-    protected MavenProject project;
 
     /*
      * The parameters for this Mojo
@@ -126,15 +89,6 @@ public class AddonPackageMojo extends AbstractMojo {
         File descriptor = writeDescriptor();
         File[] files = retrieveBundles();
         buildPackage(descriptor, new File(project.getModel().getBuild().getDirectory(), getArtifactName() + ".jar"), files);
-    }
-
-    /**
-     * Gets the prefix name of artifacts
-     *
-     * @return The prefix name
-     */
-    private String getArtifactName() {
-        return project.getModel().getArtifactId() + "-" + project.getModel().getVersion();
     }
 
     /**
@@ -228,37 +182,11 @@ public class AddonPackageMojo extends AbstractMojo {
         if (bundles != null) {
             File[] result = new File[bundles.length];
             for (int i = 0; i != bundles.length; i++) {
-                result[i] = retrieveBundle(bundles[i]);
+                result[i] = resolveArtifact(bundles[i].groupId, bundles[i].artifactId, bundles[i].version);
             }
             return result;
         }
         return null;
-    }
-
-    /**
-     * Retrieves a bundle for the addon
-     *
-     * @param bundle The bundle to retrieve
-     * @return The file for the bundle
-     * @throws MojoFailureException When the resolution failed
-     */
-    private File retrieveBundle(Bundle bundle) throws MojoFailureException {
-        getLog().info("Resolving artifact: " + bundle.groupId + "." + bundle.artifactId + "-" + bundle.version);
-        Artifact artifact = new DefaultArtifact(
-                bundle.groupId,
-                bundle.artifactId,
-                "jar",
-                bundle.version
-        );
-        try {
-            ArtifactResult result = artifactResolver.resolveArtifact(repositorySystemSession, new ArtifactRequest(artifact, null, null));
-            if (!result.isResolved()) {
-                throw new MojoFailureException("Failed to resolve artifact " + bundle.groupId + "." + bundle.artifactId + "-" + bundle.version);
-            }
-            return result.getArtifact().getFile();
-        } catch (ArtifactResolutionException exception) {
-            throw new MojoFailureException("Failed to resolve artifact " + bundle.groupId + "." + bundle.artifactId + "-" + bundle.version, exception);
-        }
     }
 
     /**
@@ -276,17 +204,17 @@ public class AddonPackageMojo extends AbstractMojo {
         try (FileOutputStream fileStream = new FileOutputStream(addonPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
                 stream.setLevel(9);
-                buildPackageAddFile(
+                zipAddFile(
                         stream,
                         fileDescriptor,
                         "descriptor.json");
-                buildPackageAddFile(
+                zipAddFile(
                         stream,
                         fileMain,
                         project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion() + ".jar");
                 if (bundles != null) {
                     for (int i = 0; i != bundles.length; i++) {
-                        buildPackageAddFile(
+                        zipAddFile(
                                 stream,
                                 fileBundles[i],
                                 bundles[i].groupId + "." + bundles[i].artifactId + "-" + bundles[i].version + ".jar");
@@ -303,29 +231,5 @@ public class AddonPackageMojo extends AbstractMojo {
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon package", exception);
         }
-    }
-
-    /**
-     * Adds a file to the package
-     *
-     * @param stream    The stream to the package
-     * @param file      The file to add
-     * @param entryName The name of the zip entry
-     * @throws IOException          When an IO operation failed
-     * @throws MojoFailureException When the packaging failed
-     */
-    private void buildPackageAddFile(ZipOutputStream stream, File file, String entryName) throws IOException, MojoFailureException {
-        getLog().info("Adding package entry " + entryName + " for file " + file.getAbsolutePath());
-        ZipEntry entry = new ZipEntry(entryName);
-        entry.setMethod(ZipEntry.DEFLATED);
-        stream.putNextEntry(entry);
-        byte[] bytes;
-        try (FileInputStream fileInputStream = new FileInputStream(file)) {
-            bytes = Files.load(fileInputStream);
-        } catch (FileNotFoundException exception) {
-            throw new MojoFailureException("Cannot read file " + file.getAbsolutePath());
-        }
-        stream.write(bytes, 0, bytes.length);
-        stream.closeEntry();
     }
 }
