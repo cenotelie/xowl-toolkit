@@ -284,7 +284,7 @@ public class MarketplacePackageMojo extends AbstractMojo {
         getLog().info("Adding package entry " + entryName + " for file " + file.getAbsolutePath());
         ZipEntry entry = new ZipEntry(entryName);
         entry.setMethod(ZipEntry.DEFLATED);
-        stream.putNextEntry(new ZipEntry(entryName));
+        stream.putNextEntry(entry);
         byte[] bytes;
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
             bytes = Files.load(fileInputStream);
