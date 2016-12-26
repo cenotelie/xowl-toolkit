@@ -15,7 +15,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package org.xowl.toolkit.maven.marketplacebuilder;
+package org.xowl.toolkit.packaging;
 
 /**
  * Represents a category of addons in a marketplace
