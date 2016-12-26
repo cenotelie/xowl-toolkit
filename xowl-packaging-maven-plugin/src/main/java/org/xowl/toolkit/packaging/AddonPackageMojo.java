@@ -79,17 +79,22 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        File descriptor = writeDescriptor();
-        File[] files = retrieveBundles();
-        buildPackage(descriptor, files);
-
-        // attach the descriptor
-        /*projectHelper.attachArtifact(
+        File fileDescriptor = writeDescriptor();
+        File[] fileBundles = retrieveBundles();
+        File filePackage = buildPackage(fileDescriptor, fileBundles);
+        // attach the artifacts
+        projectHelper.attachArtifact(
                 project,
                 "json",
-                "addon-descriptor",
-                addonDescriptor
-        );*/
+                "xowl-addon-descriptor",
+                fileDescriptor
+        );
+        projectHelper.attachArtifact(
+                project,
+                "zip",
+                "xowl-addon",
+                filePackage
+        );
     }
 
     /**
@@ -116,7 +121,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         }
 
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
-        File addonDescriptor = new File(targetDirectory, getArtifactName() + "-addon-descriptor.json");
+        File addonDescriptor = new File(targetDirectory, getArtifactName() + "-xowl-addon-descriptor.json");
         getLog().info("Writing descriptor for addon: " + addonDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
@@ -183,11 +188,12 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
      *
      * @param fileDescriptor The file for the descriptor
      * @param fileBundles    The files for the bundles
+     * @return The file for the package
      * @throws MojoFailureException When the packaging failed
      */
-    private void buildPackage(File fileDescriptor, File[] fileBundles) throws MojoFailureException {
+    private File buildPackage(File fileDescriptor, File[] fileBundles) throws MojoFailureException {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
-        File addonPackage = new File(targetDirectory, getArtifactName() + "-addon-package.zip");
+        File addonPackage = new File(targetDirectory, getArtifactName() + "-xowl-addon.zip");
         getLog().info("Writing package for addon: " + addonPackage.getName());
         try (FileOutputStream fileStream = new FileOutputStream(addonPackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
@@ -204,6 +210,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
                             dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar");
                 }
             }
+            return addonPackage;
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon package", exception);
         }
