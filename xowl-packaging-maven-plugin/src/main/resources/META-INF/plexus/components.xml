@@ -82,6 +82,46 @@
             </configuration>
         </component>
         <component>
+            <role>org.apache.maven.lifecycle.mapping.LifecycleMapping</role>
+            <role-hint>xowl-platform</role-hint>
+            <implementation>
+                org.apache.maven.lifecycle.mapping.DefaultLifecycleMapping
+            </implementation>
+            <configuration>
+                <lifecycles>
+                    <lifecycle>
+                        <id>default</id>
+                        <phases>
+                            <process-resources>
+                                org.apache.maven.plugins:maven-resources-plugin:resources
+                            </process-resources>
+                            <compile>
+                                org.apache.maven.plugins:maven-compiler-plugin:compile
+                            </compile>
+                            <process-test-resources>
+                                org.apache.maven.plugins:maven-resources-plugin:testResources
+                            </process-test-resources>
+                            <test-compile>
+                                org.apache.maven.plugins:maven-compiler-plugin:testCompile
+                            </test-compile>
+                            <test>
+                                org.apache.maven.plugins:maven-surefire-plugin:test
+                            </test>
+                            <package>
+                                org.xowl.toolkit:xowl-packaging-maven-plugin:xowl-platform-package
+                            </package>
+                            <install>
+                                org.apache.maven.plugins:maven-install-plugin:install
+                            </install>
+                            <deploy>
+                                org.apache.maven.plugins:maven-deploy-plugin:deploy
+                            </deploy>
+                        </phases>
+                    </lifecycle>
+                </lifecycles>
+            </configuration>
+        </component>
+        <component>
             <role>org.apache.maven.artifact.handler.ArtifactHandler</role>
             <role-hint>xowl-addon</role-hint>
             <implementation>
@@ -137,6 +177,21 @@
                 <extension>json</extension>
                 <packaging>xowl-marketplace-descriptor</packaging>
                 <classifier>xowl-marketplace-descriptor</classifier>
+                <language>java</language>
+                <addedToClasspath>false</addedToClasspath>
+            </configuration>
+        </component>
+        <component>
+            <role>org.apache.maven.artifact.handler.ArtifactHandler</role>
+            <role-hint>xowl-platform</role-hint>
+            <implementation>
+                org.apache.maven.artifact.handler.DefaultArtifactHandler
+            </implementation>
+            <configuration>
+                <type>xowl-platform</type>
+                <extension>tar.gz</extension>
+                <packaging>xowl-platform</packaging>
+                <classifier>xowl-platform</classifier>
                 <language>java</language>
                 <addedToClasspath>false</addedToClasspath>
             </configuration>
