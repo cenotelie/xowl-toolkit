@@ -17,6 +17,8 @@
 
 package org.xowl.toolkit.packaging;
 
+import org.apache.maven.artifact.DefaultArtifact;
+import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -54,18 +56,28 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
         File fileDescriptor = writeDescriptor();
         File[] fileAddons = retrieveAddons();
         File filePackage = buildPackage(fileDescriptor, fileAddons);
-        // attach the artifacts
+
+        DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler("xowl-marketplace");
+        artifactHandler.setAddedToClasspath(false);
+        artifactHandler.setExtension("zip");
+        artifactHandler.setLanguage("java");
+        artifactHandler.setIncludesDependencies(false);
+        DefaultArtifact mainArtifact = new DefaultArtifact(
+                project.getModel().getGroupId(),
+                project.getModel().getArtifactId(),
+                project.getModel().getVersion(),
+                "compile",
+                "xowl-marketplace",
+                "xowl-marketplace",
+                artifactHandler
+        );
+        mainArtifact.setFile(filePackage);
+        project.setArtifact(mainArtifact);
         projectHelper.attachArtifact(
                 project,
                 "json",
                 "xowl-marketplace-descriptor",
                 fileDescriptor
-        );
-        projectHelper.attachArtifact(
-                project,
-                "zip",
-                "xowl-marketplace",
-                filePackage
         );
     }
 

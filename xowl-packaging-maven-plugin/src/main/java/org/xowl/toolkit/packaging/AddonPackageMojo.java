@@ -17,6 +17,8 @@
 
 package org.xowl.toolkit.packaging;
 
+import org.apache.maven.artifact.DefaultArtifact;
+import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -90,18 +92,28 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         File fileDescriptor = writeDescriptor();
         File[] fileBundles = retrieveBundles();
         File filePackage = buildPackage(fileDescriptor, fileBundles);
-        // attach the artifacts
+
+        DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler("xowl-addon");
+        artifactHandler.setAddedToClasspath(false);
+        artifactHandler.setExtension("zip");
+        artifactHandler.setLanguage("java");
+        artifactHandler.setIncludesDependencies(false);
+        DefaultArtifact mainArtifact = new DefaultArtifact(
+                project.getModel().getGroupId(),
+                project.getModel().getArtifactId(),
+                project.getModel().getVersion(),
+                "compile",
+                "xowl-addon",
+                "xowl-addon",
+                artifactHandler
+        );
+        mainArtifact.setFile(filePackage);
+        project.setArtifact(mainArtifact);
         projectHelper.attachArtifact(
                 project,
                 "json",
                 "xowl-addon-descriptor",
                 fileDescriptor
-        );
-        projectHelper.attachArtifact(
-                project,
-                "zip",
-                "xowl-addon",
-                filePackage
         );
     }
 
