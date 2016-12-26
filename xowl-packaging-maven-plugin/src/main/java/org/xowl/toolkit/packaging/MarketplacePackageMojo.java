@@ -19,10 +19,9 @@ package org.xowl.toolkit.packaging;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.xowl.infra.utils.TextUtils;
 
 import java.io.File;
@@ -30,6 +29,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -37,29 +38,12 @@ import java.util.zip.ZipOutputStream;
  *
  * @author Laurent Wouters
  */
-@Execute(goal = "marketplace-package", phase = LifecyclePhase.PACKAGE)
-@Mojo(name = "marketplace-package", defaultPhase = LifecyclePhase.PACKAGE)
+@Mojo(name = "xowl-marketplace-package", defaultPhase = LifecyclePhase.PACKAGE)
 public class MarketplacePackageMojo extends PackagingAbstractMojo {
     /**
      * The version of the descriptor model produced by this plugin
      */
     public static final String MODEL_VERSION = "1.0";
-
-    /*
-     * The parameters for this Mojo
-     */
-
-    /**
-     * The categories for this marketplace
-     */
-    @Parameter
-    protected Category[] categories;
-
-    /**
-     * The addons for this marketplace
-     */
-    @Parameter
-    protected Addon[] addons;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -68,67 +52,59 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
             if (!targetDirectory.mkdirs())
                 throw new MojoFailureException("Failed to create target directory");
         }
-        File fileDescriptor = writeDescriptor();
-        File[] fileAddons = retrieveAddons();
-        buildPackage(fileDescriptor, fileAddons);
+
+        Collection<MavenProject> addons = new ArrayList<>();
+        for (MavenProject candidate : project.getCollectedProjects()) {
+            if (candidate.getParent() == project) {
+                addons.add(candidate);
+            }
+        }
+
+        File fileDescriptor = writeDescriptor(addons);
+        File[] fileAddons = retrieveAddons(addons);
+        File filePackage = buildPackage(fileDescriptor, fileAddons, addons);
+        // attach the artifacts
+        projectHelper.attachArtifact(
+                project,
+                "json",
+                "xowl-marketplace-descriptor",
+                fileDescriptor
+        );
+        projectHelper.attachArtifact(
+                project,
+                "zip",
+                "xowl-marketplace",
+                filePackage
+        );
     }
 
     /**
      * Writes the marketplace descriptor
      *
+     * @param addons The addons of this marketplace
      * @return The file for the descriptor
      * @throws MojoFailureException When writing failed
      */
-    private File writeDescriptor() throws MojoFailureException {
+    private File writeDescriptor(Collection<MavenProject> addons) throws MojoFailureException {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
-        File marketplaceDescriptor = new File(targetDirectory, getArtifactName() + "-marketplace-descriptor.json");
+        File marketplaceDescriptor = new File(targetDirectory, getArtifactName() + "-xowl-marketplace-descriptor.json");
         getLog().info("Writing descriptor for marketplace: " + marketplaceDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(marketplaceDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
             writer.write("\t\"modelVersion\": \"" + TextUtils.escapeStringJSON(MODEL_VERSION) + "\",\n");
-            writer.write("\t\"categories\": [\n");
-            if (categories != null) {
-                for (int i = 0; i != categories.length; i++) {
-                    writer.write("\t\t{\n");
-                    writer.write("\t\t\t\"identifier\": \"" + TextUtils.escapeStringJSON(categories[i].identifier) + "\",\n");
-                    writer.write("\t\t\t\"name\": \"" + TextUtils.escapeStringJSON(categories[i].name) + "\"\n");
-                    if (i == categories.length - 1)
-                        writer.write("\t\t}\n");
-                    else
-                        writer.write("\t\t},\n");
-                }
-            }
-            writer.write("\t],\n");
             writer.write("\t\"addons\": [\n");
-            if (addons != null) {
-                for (int i = 0; i != addons.length; i++) {
-                    writer.write("\t\t{\n");
-                    writer.write("\t\t\t\"identifier\": \"" + TextUtils.escapeStringJSON(addons[i].groupId + "." + addons[i].artifactId + "-" + addons[i].version) + "\",\n");
-                    writer.write("\t\t\t\"categories\": [\n");
-                    if (addons[i].categories != null) {
-                        for (int j = 0; j != addons[i].categories.length; j++) {
-                            writer.write("\t\t\t\t\"" + TextUtils.escapeStringJSON(addons[i].categories[j]) + "\"");
-                            if (j != addons[i].categories.length - 1)
-                                writer.write(",");
-                            writer.write("\n");
-                        }
-                    }
-                    writer.write("\t\t\t]\n");
-                    if (i == categories.length - 1)
-                        writer.write("\t\t}\n");
-                    else
-                        writer.write("\t\t},\n");
+            if (!addons.isEmpty()) {
+                boolean first = true;
+                for (MavenProject module : addons) {
+                    if (!first)
+                        writer.write(",\n");
+                    first = false;
+                    writer.write("\t\"" + TextUtils.escapeStringJSON(module.getGroupId() + "." + module.getArtifactId() + "-" + module.getVersion()) + "\"");
                 }
+                writer.write("\n");
             }
             writer.write("\t]\n");
             writer.write("}\n");
-            // attach the descriptor
-            projectHelper.attachArtifact(
-                    project,
-                    "json",
-                    "marketplace-descriptor",
-                    marketplaceDescriptor
-            );
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the marketplace description", exception);
         }
@@ -138,19 +114,17 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
     /**
      * Retrieves the packages for the addons
      *
+     * @param addons The addons of this marketplace
      * @throws MojoFailureException When the resolution failed
      */
-    private File[] retrieveAddons() throws MojoFailureException {
-        if (addons != null) {
-            File[] result = new File[addons.length * 2];
-            int j = 0;
-            for (int i = 0; i != addons.length; i++) {
-                result[j++] = resolveArtifact(addons[i].groupId, addons[i].artifactId, addons[i].version, "addon-descriptor", "json");
-                result[j++] = resolveArtifact(addons[i].groupId, addons[i].artifactId, addons[i].version, "addon-package", "zip");
-            }
-            return result;
+    private File[] retrieveAddons(Collection<MavenProject> addons) throws MojoFailureException {
+        File[] result = new File[project.getDependencies().size() * 2];
+        int i = 0;
+        for (MavenProject addon : addons) {
+            result[i++] = resolveArtifact(addon.getGroupId(), addon.getArtifactId(), addon.getVersion(), "xowl-addon", "zip");
+            result[i++] = resolveArtifact(addon.getGroupId(), addon.getArtifactId(), addon.getVersion(), "xowl-addon-descriptor", "json");
         }
-        return null;
+        return result;
     }
 
     /**
@@ -158,11 +132,13 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
      *
      * @param fileDescriptor The file for the descriptor
      * @param fileAddons     The files for the addons
+     * @param addons         The addons of this marketplace
+     * @return The file for the package
      * @throws MojoFailureException When the packaging failed
      */
-    private void buildPackage(File fileDescriptor, File[] fileAddons) throws MojoFailureException {
+    private File buildPackage(File fileDescriptor, File[] fileAddons, Collection<MavenProject> addons) throws MojoFailureException {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
-        File marketplacePackage = new File(targetDirectory, getArtifactName() + "-marketplace-package.zip");
+        File marketplacePackage = new File(targetDirectory, getArtifactName() + "-xowl-marketplace.zip");
         getLog().info("Writing package for marketplace: " + marketplacePackage.getName());
         try (FileOutputStream fileStream = new FileOutputStream(marketplacePackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {
@@ -171,27 +147,19 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
                         stream,
                         fileDescriptor,
                         "marketplace.json");
-                if (addons != null) {
-                    int j = 0;
-                    for (int i = 0; i != addons.length; i++) {
-                        zipAddFile(
-                                stream,
-                                fileAddons[j++],
-                                addons[i].groupId + "." + addons[i].artifactId + "-" + addons[i].version + ".descriptor");
-                        zipAddFile(
-                                stream,
-                                fileAddons[j++],
-                                addons[i].groupId + "." + addons[i].artifactId + "-" + addons[i].version + ".zip");
-                    }
+                int i = 0;
+                for (MavenProject addon : addons) {
+                    zipAddFile(
+                            stream,
+                            fileAddons[i++],
+                            addon.getGroupId() + "." + addon.getArtifactId() + "-" + addon.getVersion() + ".zip");
+                    zipAddFile(
+                            stream,
+                            fileAddons[i++],
+                            addon.getGroupId() + "." + addon.getArtifactId() + "-" + addon.getVersion() + ".descriptor");
                 }
             }
-            // attach the package
-            projectHelper.attachArtifact(
-                    project,
-                    "zip",
-                    "addon-package",
-                    marketplacePackage
-            );
+            return marketplacePackage;
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon package", exception);
         }

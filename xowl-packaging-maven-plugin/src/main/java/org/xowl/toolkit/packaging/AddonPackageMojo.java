@@ -43,10 +43,6 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
      */
     public static final String MODEL_VERSION = "1.0";
 
-    /*
-     * The parameters for this Mojo
-     */
-
     /**
      * The SCM tag (changeset / commit id) for the addon
      */
@@ -77,8 +73,20 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
     @Parameter
     protected String pricing;
 
+    /**
+     * The tags for the addon
+     */
+    @Parameter
+    protected String[] tags;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
+        File targetDirectory = new File(project.getModel().getBuild().getDirectory());
+        if (!targetDirectory.exists()) {
+            if (!targetDirectory.mkdirs())
+                throw new MojoFailureException("Failed to create target directory");
+        }
+
         File fileDescriptor = writeDescriptor();
         File[] fileBundles = retrieveBundles();
         File filePackage = buildPackage(fileDescriptor, fileBundles);
@@ -161,7 +169,17 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
                 writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(dependency.getVersion()) + "\"\n");
                 writer.write("\t\t}");
             }
-            writer.write("\n\t]\n");
+            writer.write("\n\t],\n");
+            writer.write("\t\"tags\": [\n");
+            if (tags != null) {
+                for (int i = 0; i != tags.length; i++) {
+                    if (i != 0)
+                        writer.write(",\n");
+                    writer.write("\t\t\"" + TextUtils.escapeStringJSON(tags[i]) + "\"");
+                }
+                writer.write("\n");
+            }
+            writer.write("\t]\n");
             writer.write("}\n");
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon description", exception);
