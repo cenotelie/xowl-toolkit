@@ -17,9 +17,9 @@
 
 package org.xowl.toolkit.packaging;
 
+import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -36,8 +36,7 @@ import java.util.zip.ZipOutputStream;
  *
  * @author Laurent Wouters
  */
-@Execute(goal = "addon-package", phase = LifecyclePhase.PACKAGE)
-@Mojo(name = "addon-package", defaultPhase = LifecyclePhase.PACKAGE)
+@Mojo(name = "xowl-addon-package", defaultPhase = LifecyclePhase.PACKAGE)
 public class AddonPackageMojo extends PackagingAbstractMojo {
     /**
      * The version of the descriptor model produced by this plugin
@@ -78,17 +77,19 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
     @Parameter
     protected String pricing;
 
-    /**
-     * The additional bundles for the addon
-     */
-    @Parameter
-    protected Bundle[] bundles;
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         File descriptor = writeDescriptor();
         File[] files = retrieveBundles();
-        buildPackage(descriptor, new File(project.getModel().getBuild().getDirectory(), getArtifactName() + ".jar"), files);
+        buildPackage(descriptor, files);
+
+        // attach the descriptor
+        /*projectHelper.attachArtifact(
+                project,
+                "json",
+                "addon-descriptor",
+                addonDescriptor
+        );*/
     }
 
     /**
@@ -144,29 +145,19 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
             writer.write("\t},\n");
             writer.write("\t\"pricing\": \"" + (pricing == null ? "" : TextUtils.escapeStringJSON(pricing)) + "\",\n");
             writer.write("\t\"bundles\": [\n");
-            if (bundles != null) {
-                for (int i = 0; i != bundles.length; i++) {
-                    writer.write("\t\t{\n");
-                    writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(bundles[i].groupId) + "\",\n");
-                    writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(bundles[i].artifactId) + "\",\n");
-                    writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(bundles[i].version) + "\"\n");
-                    writer.write("\t\t},\n");
-                }
+            boolean first = true;
+            for (Dependency dependency : project.getModel().getDependencies()) {
+                if (!first)
+                    writer.write(",\n");
+                first = false;
+                writer.write("\t\t{\n");
+                writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(dependency.getGroupId()) + "\",\n");
+                writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(dependency.getArtifactId()) + "\",\n");
+                writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(dependency.getVersion()) + "\"\n");
+                writer.write("\t\t}");
             }
-            writer.write("\t\t{\n");
-            writer.write("\t\t\t\"groupId\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId()) + "\",\n");
-            writer.write("\t\t\t\"artifactId\": \"" + TextUtils.escapeStringJSON(project.getModel().getArtifactId()) + "\",\n");
-            writer.write("\t\t\t\"version\": \"" + TextUtils.escapeStringJSON(project.getModel().getVersion()) + "\"\n");
-            writer.write("\t\t}\n");
-            writer.write("\t]\n");
+            writer.write("\n\t]\n");
             writer.write("}\n");
-            // attach the descriptor
-            projectHelper.attachArtifact(
-                    project,
-                    "json",
-                    "addon-descriptor",
-                    addonDescriptor
-            );
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon description", exception);
         }
@@ -179,25 +170,22 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
      * @throws MojoFailureException When the resolution failed
      */
     private File[] retrieveBundles() throws MojoFailureException {
-        if (bundles != null) {
-            File[] result = new File[bundles.length];
-            for (int i = 0; i != bundles.length; i++) {
-                result[i] = resolveArtifact(bundles[i].groupId, bundles[i].artifactId, bundles[i].version);
-            }
-            return result;
+        File[] result = new File[project.getDependencies().size()];
+        int i = 0;
+        for (Dependency dependency : project.getModel().getDependencies()) {
+            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion());
         }
-        return null;
+        return result;
     }
 
     /**
      * Builds the package for the addon
      *
      * @param fileDescriptor The file for the descriptor
-     * @param fileMain       The file for the main bundle
-     * @param fileBundles    The files for the other bundles
+     * @param fileBundles    The files for the bundles
      * @throws MojoFailureException When the packaging failed
      */
-    private void buildPackage(File fileDescriptor, File fileMain, File[] fileBundles) throws MojoFailureException {
+    private void buildPackage(File fileDescriptor, File[] fileBundles) throws MojoFailureException {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
         File addonPackage = new File(targetDirectory, getArtifactName() + "-addon-package.zip");
         getLog().info("Writing package for addon: " + addonPackage.getName());
@@ -208,26 +196,14 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
                         stream,
                         fileDescriptor,
                         "descriptor.json");
-                zipAddFile(
-                        stream,
-                        fileMain,
-                        project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion() + ".jar");
-                if (bundles != null) {
-                    for (int i = 0; i != bundles.length; i++) {
-                        zipAddFile(
-                                stream,
-                                fileBundles[i],
-                                bundles[i].groupId + "." + bundles[i].artifactId + "-" + bundles[i].version + ".jar");
-                    }
+                int i = 0;
+                for (Dependency dependency : project.getModel().getDependencies()) {
+                    zipAddFile(
+                            stream,
+                            fileBundles[i],
+                            dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar");
                 }
             }
-            // attach the package
-            projectHelper.attachArtifact(
-                    project,
-                    "zip",
-                    "addon-package",
-                    addonPackage
-            );
         } catch (IOException exception) {
             throw new MojoFailureException("Failed to write the addon package", exception);
         }
