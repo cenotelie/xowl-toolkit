@@ -39,8 +39,7 @@
         </snapshotRepository>
     </distributionManagement>
     <modules>
-        <module>xowl-addon-builder-maven-plugin</module>
-        <module>xowl-marketplace-builder-maven-plugin</module>
+        <module>xowl-packaging-maven-plugin</module>
     </modules>
     <build>
         <plugins>
