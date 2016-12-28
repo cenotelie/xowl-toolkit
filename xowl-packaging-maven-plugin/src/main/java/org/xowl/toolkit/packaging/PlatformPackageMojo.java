@@ -42,19 +42,19 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     /**
      * The SCM changeset for the manifest
      */
-    @Parameter(required = true)
+    @Parameter
     protected String manifestChangeset;
 
     /**
      * The build tag for the manifest
      */
-    @Parameter(required = true)
+    @Parameter
     protected String manifestBuildTag;
 
     /**
      * The build timestamp for the manifest
      */
-    @Parameter(required = true)
+    @Parameter
     protected String manifestBuildTimestamp;
 
     /**
