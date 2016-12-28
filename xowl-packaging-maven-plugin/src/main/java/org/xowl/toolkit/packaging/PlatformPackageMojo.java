@@ -38,6 +38,10 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      * The classifier for xOWL platform artifacts
      */
     private static final String CLASSIFIER = "xowl-platform";
+    /**
+     * File mode for executable files in a tar package
+     */
+    private static final int EXECUTABLE_MODE = 0100755;
 
     /**
      * The SCM changeset for the manifest
@@ -360,6 +364,10 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                 packageTarGzDirectory(outputStream, child, path + "/" + child.getName());
             else {
                 entry = new TarArchiveEntry(child, path + "/" + child.getName());
+                if (child.canExecute()) {
+                    // set as executable
+                    entry.setMode(EXECUTABLE_MODE);
+                }
                 outputStream.putArchiveEntry(entry);
                 try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(child))) {
                     IOUtils.copy(bis, outputStream);
