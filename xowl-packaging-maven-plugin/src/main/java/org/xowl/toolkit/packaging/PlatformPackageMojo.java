@@ -69,26 +69,25 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             if (!targetDirectory.mkdirs())
                 throw new MojoFailureException("Failed to create target directory");
         }
-
-        // get the dependencies
-        File[] fileDependencies = new File[project.getModel().getDependencies().size()];
-        File fileFelix = null;
-        int i = 0;
-        for (Dependency dependency : project.getModel().getDependencies()) {
-            File file = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), dependency.getClassifier(), dependency.getType());
-            fileDependencies[i++] = file;
-            if (dependency.getGroupId().equals(FELIX_DISTRIB_GROUP_ID) && dependency.getArtifactId().equals(FELIX_DISTRIB_ARTIFACT_ID))
-                fileFelix = file;
-        }
-        if (fileFelix == null) {
-            throw new MojoFailureException("No Felix distribution specified in dependencies");
-        }
-
         File targetDistribution = new File(targetDirectory, "distribution");
         if (!targetDistribution.exists()) {
             if (!targetDistribution.mkdirs())
                 throw new MojoFailureException("Failed to create target directory");
         }
+
+        File[] fileDependencies = resolveDependencies();
+        // find the felix distribution
+        File fileFelix = null;
+        int i = 0;
+        for (Dependency dependency : project.getModel().getDependencies()) {
+            if (dependency.getGroupId().equals(FELIX_DISTRIB_GROUP_ID) && dependency.getArtifactId().equals(FELIX_DISTRIB_ARTIFACT_ID)) {
+                fileFelix = fileDependencies[i];
+                break;
+            }
+            i++;
+        }
+        if (fileFelix == null)
+            throw new MojoFailureException("No Felix distribution specified in dependencies");
 
         // extract the felix distribution
         extractTarGz(fileFelix, targetDistribution);
@@ -104,58 +103,89 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             throw new MojoFailureException("Failed to move " + targetDistributionFelix1.getAbsolutePath() + " to " + targetDistributionFelix2.getAbsolutePath(), exception);
         }
 
-        // deploy the bundles
-        File directoryBundles = new File(targetDistributionFelix2, "bundle");
-        i = 0;
+        deployBundles(targetDistribution, fileDependencies, fileFelix);
+        deployResources(targetDistribution);
+        packageDistribution(targetDistribution);
+    }
+
+    /**
+     * Builds the package of a custom platform
+     *
+     * @throws MojoExecutionException if an unexpected problem occurs.
+     *                                Throwing this exception causes a "BUILD ERROR" message to be displayed.
+     * @throws MojoFailureException   if an expected problem (such as a compilation failure) occurs.
+     *                                Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+     */
+    private void executeCustomization() throws MojoExecutionException, MojoFailureException {
+
+    }
+
+    /**
+     * Resolves the dependencies for the distribution
+     *
+     * @return The files for the resolved dependency
+     * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
+     *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+     */
+    private File[] resolveDependencies() throws MojoFailureException {
+        File[] fileDependencies = new File[project.getModel().getDependencies().size()];
+        int i = 0;
+        for (Dependency dependency : project.getModel().getDependencies()) {
+            File file = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), dependency.getClassifier(), dependency.getType());
+            fileDependencies[i++] = file;
+        }
+        return fileDependencies;
+    }
+
+    /**
+     * Deploys the dependency bundles into the distribution to build
+     *
+     * @param targetDistribution The directory of the distribution to build
+     * @param fileDependencies   The file of the resolved dependencies
+     * @param excludedDependency The file of the excluded dependency (base platform)
+     * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
+     *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+     */
+    private void deployBundles(File targetDistribution, File[] fileDependencies, File excludedDependency) throws MojoFailureException {
+        File directoryFelix = new File(targetDistribution, "felix");
+        File directoryBundles = new File(directoryFelix, "bundle");
+        int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
             File bundleFileSource = fileDependencies[i++];
-            if (bundleFileSource == fileFelix)
+            if (bundleFileSource == excludedDependency)
                 continue;
+            File bundleFileTarget = dependency.getGroupId().equals(FELIX_DISTRIB_GROUP_ID) ?
+                    new File(directoryBundles, dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar") :
+                    new File(directoryBundles, dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar");
             try {
-                File bundleFileTarget = dependency.getGroupId().equals(FELIX_DISTRIB_GROUP_ID) ?
-                        new File(directoryBundles, dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar") :
-                        new File(directoryBundles, dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar");
                 Files.copy(bundleFileSource.toPath(), bundleFileTarget.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException exception) {
                 getLog().error(exception);
-                throw new MojoFailureException("Failed to copy " + targetDistributionFelix1.getAbsolutePath() + " to " + targetDistributionFelix2.getAbsolutePath(), exception);
+                throw new MojoFailureException("Failed to copy " + bundleFileSource.getAbsolutePath() + " to " + bundleFileTarget.getAbsolutePath(), exception);
             }
         }
+    }
 
-        // deploy the resources
+    /**
+     * Deploys configured resources into the distribution to build
+     *
+     * @param targetDistribution The directory of the distribution to build
+     * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
+     *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+     */
+    private void deployResources(File targetDistribution) throws MojoFailureException {
         if (resources != null) {
-            for (i = 0; i != resources.length; i++) {
+            for (int i = 0; i != resources.length; i++) {
                 File origin = resources[i];
                 File target = new File(targetDistribution, origin.getName());
                 copyResource(origin, target);
             }
         }
-
-        // build the distribution package
-        File filePackage = new File(targetDirectory, getArtifactName() + "-xowl-platform.tar.gz");
-        packageTarGz(targetDistribution, filePackage, project.getModel().getArtifactId());
-        org.xowl.infra.utils.Files.deleteFolder(targetDistribution);
-
-        DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler("xowl-addon");
-        artifactHandler.setAddedToClasspath(false);
-        artifactHandler.setExtension("zip");
-        artifactHandler.setLanguage("java");
-        artifactHandler.setIncludesDependencies(false);
-        DefaultArtifact mainArtifact = new DefaultArtifact(
-                project.getModel().getGroupId(),
-                project.getModel().getArtifactId(),
-                project.getModel().getVersion(),
-                "compile",
-                "xowl-platform",
-                "xowl-platform",
-                artifactHandler
-        );
-        mainArtifact.setFile(filePackage);
-        project.setArtifact(mainArtifact);
     }
 
     /**
-     * Copy a resource
+     * Copy a resource for the distribution.
+     * If the resource is a directory, ir is recursively copied.
      *
      * @param origin The origin file
      * @param target The target file
@@ -183,10 +213,40 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     }
 
     /**
+     * Packages the resulting distribution and builds the corresponding Maven artifact
+     *
+     * @param targetDistribution The directory of the distribution to build
+     * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
+     *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+     */
+    private void packageDistribution(File targetDistribution) throws MojoFailureException {
+        File filePackage = new File(new File(project.getModel().getBuild().getDirectory()), getArtifactName() + "-xowl-platform.tar.gz");
+        packageTarGz(targetDistribution, filePackage, project.getModel().getArtifactId());
+        org.xowl.infra.utils.Files.deleteFolder(targetDistribution);
+
+        DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler("xowl-platform");
+        artifactHandler.setAddedToClasspath(false);
+        artifactHandler.setExtension("zip");
+        artifactHandler.setLanguage("java");
+        artifactHandler.setIncludesDependencies(false);
+        DefaultArtifact mainArtifact = new DefaultArtifact(
+                project.getModel().getGroupId(),
+                project.getModel().getArtifactId(),
+                project.getModel().getVersion(),
+                "compile",
+                "xowl-platform",
+                "xowl-platform",
+                artifactHandler
+        );
+        mainArtifact.setFile(filePackage);
+        project.setArtifact(mainArtifact);
+    }
+
+    /**
      * Creates an tar.gz archive from a directory
      *
      * @param input    The input directory
-     * @param output   The ouput tar.gz file
+     * @param output   The output tar.gz file
      * @param rootName The name of the root folder in the package
      * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
@@ -202,7 +262,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     }
 
     /**
-     * Adds a directory to the tar archive
+     * Adds a directory to a tar archive
      *
      * @param outputStream The stream to write to
      * @param directory    The directory to put into the archive
@@ -268,17 +328,5 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             getLog().error(exception);
             throw new MojoFailureException("Failed to extract " + input.getAbsolutePath(), exception);
         }
-    }
-
-    /**
-     * Builds the package of a custom platform
-     *
-     * @throws MojoExecutionException if an unexpected problem occurs.
-     *                                Throwing this exception causes a "BUILD ERROR" message to be displayed.
-     * @throws MojoFailureException   if an expected problem (such as a compilation failure) occurs.
-     *                                Throwing this exception causes a "BUILD FAILURE" message to be displayed.
-     */
-    private void executeCustomization() throws MojoExecutionException, MojoFailureException {
-
     }
 }
