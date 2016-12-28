@@ -40,6 +40,24 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     private static final String CLASSIFIER = "xowl-platform";
 
     /**
+     * The SCM changeset for the manifest
+     */
+    @Parameter(required = true)
+    protected String manifestChangeset;
+
+    /**
+     * The build tag for the manifest
+     */
+    @Parameter(required = true)
+    protected String manifestBuildTag;
+
+    /**
+     * The build timestamp for the manifest
+     */
+    @Parameter(required = true)
+    protected String manifestBuildTimestamp;
+
+    /**
      * The resources to deploy at the root of the distribution
      */
     @Parameter
@@ -82,6 +100,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
 
         deployBundles(targetDistribution, fileDependencies, toExclude);
         deployResources(targetDistribution);
+        writeManifest(targetDistribution);
         packageDistribution(targetDistribution);
     }
 
@@ -236,6 +255,28 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                 getLog().error(exception);
                 throw new MojoFailureException("Failed to copy " + origin.getAbsolutePath() + " to " + target.getAbsolutePath(), exception);
             }
+        }
+    }
+
+    /**
+     * Writes the manifest for the distribution
+     *
+     * @param targetDistribution The directory of the distribution to build
+     * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
+     *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
+     */
+    private void writeManifest(File targetDistribution) throws MojoFailureException {
+        File fileManifest = new File(targetDistribution, "xowl-platform.manifest");
+        try (FileOutputStream stream = new FileOutputStream(fileManifest)) {
+            OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
+            writer.write("version = " + project.getModel().getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("changeset = " + manifestChangeset + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("build-date = " + manifestBuildTimestamp + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("build-tag = " + manifestBuildTag + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("build-user = " + System.getProperty("user.name") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+        } catch (IOException exception) {
+            getLog().error(exception);
+            throw new MojoFailureException("Failed to write manifest " + fileManifest.getAbsolutePath(), exception);
         }
     }
 
