@@ -1,5 +1,8 @@
 package org.xowl.toolkit.packaging;
 
+import org.apache.maven.artifact.handler.ArtifactHandler;
+import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
@@ -46,6 +49,12 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
     protected MavenProjectHelper projectHelper;
 
     /**
+     * Maven manager for artifact handlers
+     */
+    @Component
+    protected ArtifactHandlerManager artifactHandlerManager;
+
+    /**
      * The current Maven project
      */
     @Parameter(readonly = true, defaultValue = "${project}", required = true)
@@ -61,18 +70,39 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
         return project.getModel().getArtifactId() + "-" + project.getModel().getVersion();
     }
 
-
     /**
      * Resolves an artifact
      *
-     * @param groupId    The groupId of the artifact
-     * @param artifactId The artifactId of the artifact
-     * @param version    The version of the artifact
+     * @param dependency The artifact specification to resolve
      * @return The file for the bundle
      * @throws MojoFailureException When the resolution failed
      */
-    protected File resolveArtifact(String groupId, String artifactId, String version) throws MojoFailureException {
-        return resolveArtifact(groupId, artifactId, version, null, null);
+    protected File resolveArtifact(Dependency dependency) throws MojoFailureException {
+        String type = dependency.getType();
+        if (type == null)
+            type = "jar";
+        String extension = type;
+        ArtifactHandler handler = artifactHandlerManager.getArtifactHandler(type);
+        if (handler != null) {
+            extension = handler.getExtension();
+            if (extension == null)
+                extension = type;
+        }
+        String classifier = dependency.getClassifier();
+        if (classifier == null)
+            classifier = "";
+
+        String name = dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion();
+        if (!classifier.isEmpty())
+            name += "-" + classifier;
+        name += "." + extension;
+
+        return resolveArtifact(
+                dependency.getGroupId(),
+                dependency.getArtifactId(),
+                dependency.getVersion(),
+                classifier,
+                extension);
     }
 
     /**
@@ -88,14 +118,17 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
      */
     protected File resolveArtifact(String groupId, String artifactId, String version, String classifier, String extension) throws MojoFailureException {
         String name = groupId + "." + artifactId + "-" + version;
-        if (classifier != null)
+        if (!classifier.isEmpty())
             name += "-" + classifier;
-        if (extension != null)
-            name += "." + extension;
-        else
-            name += ".jar";
+        name += "." + extension;
+
         getLog().info("Resolving artifact: " + name);
-        Artifact artifact = new DefaultArtifact(groupId, artifactId, classifier != null ? classifier : "", extension != null ? extension : "jar", version);
+        Artifact artifact = new DefaultArtifact(
+                groupId,
+                artifactId,
+                classifier,
+                extension,
+                version);
         try {
             ArtifactResult result = artifactResolver.resolveArtifact(repositorySystemSession, new ArtifactRequest(artifact, null, null));
             if (!result.isResolved()) {

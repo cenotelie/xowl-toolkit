@@ -208,7 +208,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         File[] result = new File[project.getDependencies().size()];
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
-            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion());
+            result[i++] = resolveArtifact(dependency);
         }
         return result;
     }

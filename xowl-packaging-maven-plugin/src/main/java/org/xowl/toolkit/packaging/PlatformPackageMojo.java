@@ -35,10 +35,6 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      */
     private static final String FELIX_DISTRIB_ARTIFACT_ID = "org.apache.felix.main.distribution";
     /**
-     * The classifier for xOWL platform artifacts
-     */
-    private static final String CLASSIFIER = "xowl-platform";
-    /**
      * File mode for executable files in a tar package
      */
     private static final int EXECUTABLE_MODE = 0100755;
@@ -89,7 +85,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                 toExclude = fileBaseFelix;
                 break;
             }
-            if (dependency.getClassifier().equals(CLASSIFIER)) {
+            if ("xowl-platform".equals(dependency.getType())) {
                 baseDependency = dependency;
                 fileBasePlatform = fileDependencies[i];
                 toExclude = fileBasePlatform;
@@ -184,7 +180,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         File[] fileDependencies = new File[project.getModel().getDependencies().size()];
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
-            File file = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), dependency.getClassifier(), dependency.getType());
+            File file = resolveArtifact(dependency);
             fileDependencies[i++] = file;
         }
         return fileDependencies;
@@ -303,11 +299,11 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      */
     private void packageDistribution(File targetDistribution) throws MojoFailureException {
         getLog().info("Packaging ...");
-        File filePackage = new File(new File(project.getModel().getBuild().getDirectory()), getArtifactName() + "-" + CLASSIFIER + ".tar.gz");
+        File filePackage = new File(new File(project.getModel().getBuild().getDirectory()), getArtifactName() + ".tar.gz");
         packageTarGz(targetDistribution, filePackage, project.getModel().getArtifactId());
         org.xowl.infra.utils.Files.deleteFolder(targetDistribution);
 
-        DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler(CLASSIFIER);
+        DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler("xowl-platform");
         artifactHandler.setAddedToClasspath(false);
         artifactHandler.setExtension("tar.gz");
         artifactHandler.setLanguage("java");
@@ -317,8 +313,8 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                 project.getModel().getArtifactId(),
                 project.getModel().getVersion(),
                 "compile",
-                CLASSIFIER,
-                CLASSIFIER,
+                "xowl-platform",
+                "",
                 artifactHandler
         );
         mainArtifact.setFile(filePackage);

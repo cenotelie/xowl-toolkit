@@ -119,8 +119,8 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
         File[] result = new File[project.getDependencies().size() * 2];
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
-            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), null, "zip");
-            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), null, "json");
+            result[i++] = resolveArtifact(dependency);
+            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), "", "json");
         }
         return result;
     }
