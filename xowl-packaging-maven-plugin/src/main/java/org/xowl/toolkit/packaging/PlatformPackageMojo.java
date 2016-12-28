@@ -113,7 +113,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             getLog().error(exception);
             throw new MojoFailureException("Failed to move " + targetDistributionFelix1.getAbsolutePath() + " to " + targetDistributionFelix2.getAbsolutePath(), exception);
         }
-        return targetDirectory;
+        return targetDistribution;
     }
 
     /**
