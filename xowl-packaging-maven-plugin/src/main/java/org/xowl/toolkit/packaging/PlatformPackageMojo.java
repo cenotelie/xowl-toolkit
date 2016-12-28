@@ -196,6 +196,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
     private void deployBundles(File targetDistribution, File[] fileDependencies, File excludedDependency) throws MojoFailureException {
+        getLog().info("Deploying new bundles");
         File directoryFelix = new File(targetDistribution, "felix");
         File directoryBundles = new File(directoryFelix, "bundle");
         int i = 0;
@@ -223,6 +224,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
     private void deployResources(File targetDistribution) throws MojoFailureException {
+        getLog().info("Deploying new resources");
         if (resources != null) {
             for (int i = 0; i != resources.length; i++) {
                 File origin = resources[i];
@@ -270,6 +272,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
     private void writeManifest(File targetDistribution, Dependency baseDependency) throws MojoFailureException {
+        getLog().info("Writing manifest");
         File fileManifest = new File(targetDistribution, "xowl-platform.manifest");
         try (FileOutputStream stream = new FileOutputStream(fileManifest)) {
             OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
@@ -293,6 +296,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
     private void packageDistribution(File targetDistribution) throws MojoFailureException {
+        getLog().info("Packaging ...");
         File filePackage = new File(new File(project.getModel().getBuild().getDirectory()), getArtifactName() + "-" + CLASSIFIER + ".tar.gz");
         packageTarGz(targetDistribution, filePackage, project.getModel().getArtifactId());
         org.xowl.infra.utils.Files.deleteFolder(targetDistribution);
