@@ -73,17 +73,20 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
 
         File[] fileDependencies = resolveDependencies();
         // look for the base distribution
+        Dependency baseDependency = null;
         File fileBaseFelix = null;
         File fileBasePlatform = null;
         File toExclude = null;
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
             if (dependency.getGroupId().equals(FELIX_DISTRIB_GROUP_ID) && dependency.getArtifactId().equals(FELIX_DISTRIB_ARTIFACT_ID)) {
+                baseDependency = dependency;
                 fileBaseFelix = fileDependencies[i];
                 toExclude = fileBaseFelix;
                 break;
             }
             if (dependency.getClassifier().equals(CLASSIFIER)) {
+                baseDependency = dependency;
                 fileBasePlatform = fileDependencies[i];
                 toExclude = fileBasePlatform;
                 break;
@@ -100,7 +103,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
 
         deployBundles(targetDistribution, fileDependencies, toExclude);
         deployResources(targetDistribution);
-        writeManifest(targetDistribution);
+        writeManifest(targetDistribution, baseDependency);
         packageDistribution(targetDistribution);
     }
 
@@ -262,10 +265,11 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      * Writes the manifest for the distribution
      *
      * @param targetDistribution The directory of the distribution to build
+     * @param baseDependency     The base distribution for this one
      * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
-    private void writeManifest(File targetDistribution) throws MojoFailureException {
+    private void writeManifest(File targetDistribution, Dependency baseDependency) throws MojoFailureException {
         File fileManifest = new File(targetDistribution, "xowl-platform.manifest");
         try (FileOutputStream stream = new FileOutputStream(fileManifest)) {
             OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
@@ -274,6 +278,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             writer.write("build-date = " + manifestBuildTimestamp + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("build-tag = " + manifestBuildTag + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("build-user = " + System.getProperty("user.name") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("base = " + baseDependency.getGroupId() + "." + baseDependency.getArtifactId() + "-" + baseDependency.getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
         } catch (IOException exception) {
             getLog().error(exception);
             throw new MojoFailureException("Failed to write manifest " + fileManifest.getAbsolutePath(), exception);
