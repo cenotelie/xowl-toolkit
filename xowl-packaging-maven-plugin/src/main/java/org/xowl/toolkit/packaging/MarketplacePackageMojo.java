@@ -68,7 +68,7 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
                 project.getModel().getVersion(),
                 "compile",
                 "xowl-marketplace",
-                "xowl-marketplace",
+                "",
                 artifactHandler
         );
         mainArtifact.setFile(filePackage);
@@ -76,7 +76,7 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
         projectHelper.attachArtifact(
                 project,
                 "json",
-                "xowl-marketplace-descriptor",
+                "",
                 fileDescriptor
         );
     }
@@ -89,7 +89,7 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
      */
     private File writeDescriptor() throws MojoFailureException {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
-        File marketplaceDescriptor = new File(targetDirectory, getArtifactName() + "-xowl-marketplace-descriptor.json");
+        File marketplaceDescriptor = new File(targetDirectory, getArtifactName() + ".json");
         getLog().info("Writing descriptor for marketplace: " + marketplaceDescriptor.getName());
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(marketplaceDescriptor), Charset.forName("UTF-8"))) {
             writer.write("{\n");
@@ -119,8 +119,8 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
         File[] result = new File[project.getDependencies().size() * 2];
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
-            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), "xowl-addon", "zip");
-            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), "xowl-addon-descriptor", "json");
+            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), null, "zip");
+            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), null, "json");
         }
         return result;
     }
@@ -135,7 +135,7 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
      */
     private File buildPackage(File fileDescriptor, File[] fileAddons) throws MojoFailureException {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
-        File marketplacePackage = new File(targetDirectory, getArtifactName() + "-xowl-marketplace.zip");
+        File marketplacePackage = new File(targetDirectory, getArtifactName() + ".zip");
         getLog().info("Writing package for marketplace: " + marketplacePackage.getName());
         try (FileOutputStream fileStream = new FileOutputStream(marketplacePackage)) {
             try (ZipOutputStream stream = new ZipOutputStream(fileStream)) {

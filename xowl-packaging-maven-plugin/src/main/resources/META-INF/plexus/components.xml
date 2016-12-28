@@ -129,9 +129,8 @@
             </implementation>
             <configuration>
                 <type>xowl-addon</type>
-                <extension>zip</extension>
                 <packaging>xowl-addon</packaging>
-                <classifier>xowl-addon</classifier>
+                <extension>zip</extension>
                 <language>java</language>
                 <addedToClasspath>false</addedToClasspath>
             </configuration>
@@ -145,9 +144,7 @@
             <configuration>
                 <type>xowl-addon-descriptor</type>
                 <extension>json</extension>
-                <packaging>xowl-addon-descriptor</packaging>
-                <classifier>xowl-addon-descriptor</classifier>
-                <language>java</language>
+                <language>json</language>
                 <addedToClasspath>false</addedToClasspath>
             </configuration>
         </component>
@@ -159,9 +156,8 @@
             </implementation>
             <configuration>
                 <type>xowl-marketplace</type>
-                <extension>zip</extension>
                 <packaging>xowl-marketplace</packaging>
-                <classifier>xowl-marketplace</classifier>
+                <extension>zip</extension>
                 <language>java</language>
                 <addedToClasspath>false</addedToClasspath>
             </configuration>
@@ -175,9 +171,7 @@
             <configuration>
                 <type>xowl-marketplace-descriptor</type>
                 <extension>json</extension>
-                <packaging>xowl-marketplace-descriptor</packaging>
-                <classifier>xowl-marketplace-descriptor</classifier>
-                <language>java</language>
+                <language>json</language>
                 <addedToClasspath>false</addedToClasspath>
             </configuration>
         </component>
@@ -189,9 +183,8 @@
             </implementation>
             <configuration>
                 <type>xowl-platform</type>
-                <extension>tar.gz</extension>
                 <packaging>xowl-platform</packaging>
-                <classifier>xowl-platform</classifier>
+                <extension>tar.gz</extension>
                 <language>java</language>
                 <addedToClasspath>false</addedToClasspath>
             </configuration>

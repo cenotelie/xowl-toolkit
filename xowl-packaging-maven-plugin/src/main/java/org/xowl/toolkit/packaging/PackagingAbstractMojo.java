@@ -95,7 +95,7 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
         else
             name += ".jar";
         getLog().info("Resolving artifact: " + name);
-        Artifact artifact = new DefaultArtifact(groupId, artifactId, classifier, extension != null ? extension : "jar", version);
+        Artifact artifact = new DefaultArtifact(groupId, artifactId, classifier != null ? classifier : "", extension != null ? extension : "jar", version);
         try {
             ArtifactResult result = artifactResolver.resolveArtifact(repositorySystemSession, new ArtifactRequest(artifact, null, null));
             if (!result.isResolved()) {
