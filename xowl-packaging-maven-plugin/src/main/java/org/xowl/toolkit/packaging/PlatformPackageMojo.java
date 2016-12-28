@@ -282,6 +282,8 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             writer.write("build-tag = " + manifestBuildTag + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("build-user = " + System.getProperty("user.name") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("base = " + baseDependency.getGroupId() + "." + baseDependency.getArtifactId() + "-" + baseDependency.getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.flush();
+            writer.close();
         } catch (IOException exception) {
             getLog().error(exception);
             throw new MojoFailureException("Failed to write manifest " + fileManifest.getAbsolutePath(), exception);
