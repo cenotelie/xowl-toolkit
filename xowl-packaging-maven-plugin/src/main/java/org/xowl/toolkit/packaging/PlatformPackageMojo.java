@@ -405,6 +405,10 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                                 fileOutputStream.write(buffer, 0, read);
                         }
                     }
+                    if (entry.getMode() == EXECUTABLE_MODE) {
+                        if (!target.setExecutable(true, false))
+                            throw new MojoFailureException("Failed to set executable bit on " + target.getAbsolutePath());
+                    }
                 }
             }
         } catch (IOException exception) {
