@@ -277,9 +277,9 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         try (FileOutputStream stream = new FileOutputStream(fileManifest)) {
             OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
             writer.write("version = " + project.getModel().getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("changeset = " + manifestChangeset + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("build-date = " + manifestBuildTimestamp + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("build-tag = " + manifestBuildTag + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("changeset = " + (manifestChangeset != null ? manifestChangeset : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("build-date = " + (manifestBuildTimestamp != null ? manifestBuildTimestamp : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("build-tag = " + (manifestBuildTag != null ? manifestBuildTag : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("build-user = " + System.getProperty("user.name") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("base = " + baseDependency.getGroupId() + "." + baseDependency.getArtifactId() + "-" + baseDependency.getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.flush();
