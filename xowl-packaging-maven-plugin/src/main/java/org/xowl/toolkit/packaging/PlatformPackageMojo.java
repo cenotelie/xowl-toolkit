@@ -12,6 +12,8 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.xowl.infra.utils.Base64;
+import org.xowl.infra.utils.TextUtils;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -40,22 +42,28 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     private static final int EXECUTABLE_MODE = 0100755;
 
     /**
-     * The SCM changeset for the manifest
+     * The SCM tag (changeset / commit id) for the addon
      */
     @Parameter
-    protected String manifestChangeset;
+    protected String versionScmTag;
 
     /**
-     * The build tag for the manifest
+     * The build tag for the addon
      */
     @Parameter
-    protected String manifestBuildTag;
+    protected String versionBuildTag;
 
     /**
-     * The build timestamp for the manifest
+     * The build timestamp for the addon
      */
     @Parameter
-    protected String manifestBuildTimestamp;
+    protected String versionBuildTimestamp;
+
+    /**
+     * The path to the icon for the addon
+     */
+    @Parameter
+    protected String icon;
 
     /**
      * The resources to deploy at the root of the distribution
@@ -73,20 +81,17 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
 
         File[] fileDependencies = resolveDependencies();
         // look for the base distribution
-        Dependency baseDependency = null;
         File fileBaseFelix = null;
         File fileBasePlatform = null;
         File toExclude = null;
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
             if (dependency.getGroupId().equals(FELIX_DISTRIB_GROUP_ID) && dependency.getArtifactId().equals(FELIX_DISTRIB_ARTIFACT_ID)) {
-                baseDependency = dependency;
                 fileBaseFelix = fileDependencies[i];
                 toExclude = fileBaseFelix;
                 break;
             }
             if ("xowl-platform".equals(dependency.getType())) {
-                baseDependency = dependency;
                 fileBasePlatform = fileDependencies[i];
                 toExclude = fileBasePlatform;
                 break;
@@ -103,8 +108,15 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
 
         deployBundles(targetDistribution, fileDependencies, toExclude);
         deployResources(targetDistribution);
-        writeManifest(targetDistribution, baseDependency);
+        File fileDescriptor = writeDescriptor(targetDistribution);
         packageDistribution(targetDistribution);
+
+        projectHelper.attachArtifact(
+                project,
+                "json",
+                "",
+                fileDescriptor
+        );
     }
 
     /**
@@ -264,32 +276,74 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     }
 
     /**
-     * Writes the manifest for the distribution
+     * Writes the descriptor for the distribution
      *
      * @param targetDistribution The directory of the distribution to build
-     * @param baseDependency     The base distribution for this one
+     * @return The file for the descriptor
      * @throws MojoFailureException if an expected problem (such as a compilation failure) occurs.
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
-    private void writeManifest(File targetDistribution, Dependency baseDependency) throws MojoFailureException {
+    private File writeDescriptor(File targetDistribution) throws MojoFailureException {
+        String iconName = "";
+        String iconContent = "";
+        if (icon != null && !icon.isEmpty()) {
+            File directory = new File(project.getModel().getBuild().getDirectory());
+            File fileIcon = new File(directory.getParentFile(), icon);
+            try (InputStream stream = new FileInputStream(fileIcon)) {
+                byte[] bytes = org.xowl.infra.utils.Files.load(stream);
+                iconContent = Base64.encodeBase64(bytes);
+                iconName = fileIcon.getName();
+            } catch (IOException exception) {
+                throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
+            }
+        } else {
+            getLog().warn("No icon has been specified");
+        }
+
         getLog().info("Writing manifest");
-        File fileManifest = new File(targetDistribution, "xowl-platform.manifest");
-        try (FileOutputStream stream = new FileOutputStream(fileManifest)) {
+        File targetDirectory = new File(project.getModel().getBuild().getDirectory());
+        File fileDescriptor = new File(targetDirectory, getArtifactName() + ".json");
+        try (FileOutputStream stream = new FileOutputStream(fileDescriptor)) {
             OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
-            writer.write("identifier = " + project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("name = " + project.getModel().getName() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("version = " + project.getModel().getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("changeset = " + (manifestChangeset != null ? manifestChangeset : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("build-date = " + (manifestBuildTimestamp != null ? manifestBuildTimestamp : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("build-tag = " + (manifestBuildTag != null ? manifestBuildTag : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("build-user = " + System.getProperty("user.name") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
-            writer.write("base = " + baseDependency.getGroupId() + "." + baseDependency.getArtifactId() + "-" + baseDependency.getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("{\n");
+            writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion()) + "\",\n");
+            writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getName()) + "\",\n");
+            writer.write("\t\"description\": \"" + TextUtils.escapeStringJSON(project.getModel().getDescription()) + "\",\n");
+            writer.write("\t\"version\": {\n");
+            writer.write("\t\t\"number\": \"" + TextUtils.escapeStringJSON(project.getModel().getVersion()) + "\",\n");
+            writer.write("\t\t\"scmTag\": \"" + (versionScmTag == null ? "" : TextUtils.escapeStringJSON(versionScmTag)) + "\",\n");
+            writer.write("\t\t\"buildUser\": \"" + TextUtils.escapeStringJSON(System.getProperty("user.name")) + "\",\n");
+            writer.write("\t\t\"buildTag\": \"" + (versionBuildTag == null ? "" : TextUtils.escapeStringJSON(versionBuildTag)) + "\",\n");
+            writer.write("\t\t\"buildTimestamp\": \"" + (versionBuildTimestamp == null ? "" : TextUtils.escapeStringJSON(versionBuildTimestamp)) + "\"\n");
+            writer.write("\t},\n");
+            writer.write("\t\"copyright\": \"Copyright (c) " + TextUtils.escapeStringJSON(project.getModel().getOrganization().getName()) + "\",\n");
+            writer.write("\t\"iconName\": \"" + iconName + "\",\n");
+            writer.write("\t\"iconContent\": \"" + iconContent + "\",\n");
+            writer.write("\t\"vendor\": \"" + TextUtils.escapeStringJSON(project.getModel().getOrganization().getName()) + "\",\n");
+            writer.write("\t\"vendorLink\": \"" + TextUtils.escapeStringJSON(project.getModel().getOrganization().getUrl()) + "\",\n");
+            writer.write("\t\"link\": \"" + TextUtils.escapeStringJSON(project.getModel().getUrl()) + "\",\n");
+            writer.write("\t\"license\": {\n");
+            if (!project.getModel().getLicenses().isEmpty()) {
+                writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getName()) + "\",\n");
+                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getUrl()) + "\"\n");
+            }
+            writer.write("\t}\n");
+            writer.write("}\n");
             writer.flush();
             writer.close();
         } catch (IOException exception) {
             getLog().error(exception);
-            throw new MojoFailureException("Failed to write manifest " + fileManifest.getAbsolutePath(), exception);
+            throw new MojoFailureException("Failed to write descriptor " + fileDescriptor.getAbsolutePath(), exception);
         }
+
+        File fileDescriptor2 = new File(targetDistribution, "descriptor.json");
+        try {
+            Files.copy(fileDescriptor.toPath(), fileDescriptor2.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            getLog().error(exception);
+            throw new MojoFailureException("Failed to copy " + fileDescriptor.getAbsolutePath() + " to " + fileDescriptor2.getAbsolutePath(), exception);
+        }
+        return fileDescriptor;
     }
 
     /**

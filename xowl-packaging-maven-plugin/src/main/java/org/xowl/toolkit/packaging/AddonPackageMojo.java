@@ -152,7 +152,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
             writer.write("\t\"version\": {\n");
             writer.write("\t\t\"number\": \"" + TextUtils.escapeStringJSON(project.getModel().getVersion()) + "\",\n");
             writer.write("\t\t\"scmTag\": \"" + (versionScmTag == null ? "" : TextUtils.escapeStringJSON(versionScmTag)) + "\",\n");
-            writer.write("\t\t\"buildUser\": \"\",\n");
+            writer.write("\t\t\"buildUser\": \"" + TextUtils.escapeStringJSON(System.getProperty("user.name")) + "\",\n");
             writer.write("\t\t\"buildTag\": \"" + (versionBuildTag == null ? "" : TextUtils.escapeStringJSON(versionBuildTag)) + "\",\n");
             writer.write("\t\t\"buildTimestamp\": \"" + (versionBuildTimestamp == null ? "" : TextUtils.escapeStringJSON(versionBuildTimestamp)) + "\"\n");
             writer.write("\t},\n");
