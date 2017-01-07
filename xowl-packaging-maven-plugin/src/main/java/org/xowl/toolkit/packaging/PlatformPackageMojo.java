@@ -276,6 +276,8 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         File fileManifest = new File(targetDistribution, "xowl-platform.manifest");
         try (FileOutputStream stream = new FileOutputStream(fileManifest)) {
             OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
+            writer.write("identifier = " + project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
+            writer.write("name = " + project.getModel().getName() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("version = " + project.getModel().getVersion() + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("changeset = " + (manifestChangeset != null ? manifestChangeset : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
             writer.write("build-date = " + (manifestBuildTimestamp != null ? manifestBuildTimestamp : "") + org.xowl.infra.utils.Files.LINE_SEPARATOR);
