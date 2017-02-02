@@ -41,6 +41,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      */
     private static final int EXECUTABLE_MODE = 0100755;
 
+
     /**
      * The SCM tag (changeset / commit id) for the addon
      */
@@ -63,7 +64,13 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      * The path to the icon for the addon
      */
     @Parameter
-    protected String icon;
+    protected File icon;
+
+    /**
+     * The full text for the license
+     */
+    @Parameter
+    protected File licenseFullText;
 
     /**
      * The resources to deploy at the root of the distribution
@@ -286,19 +293,26 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
     private File writeDescriptor(File targetDistribution) throws MojoFailureException {
         String iconName = "";
         String iconContent = "";
-        if (icon != null && !icon.isEmpty()) {
-            File directory = new File(project.getModel().getBuild().getDirectory());
-            File fileIcon = new File(directory.getParentFile(), icon);
-            try (InputStream stream = new FileInputStream(fileIcon)) {
+        if (icon != null) {
+            try (InputStream stream = new FileInputStream(icon)) {
                 byte[] bytes = org.xowl.infra.utils.Files.load(stream);
                 iconContent = Base64.encodeBase64(bytes);
-                iconName = fileIcon.getName();
+                iconName = icon.getName();
             } catch (IOException exception) {
-                throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
+                throw new MojoFailureException("Failed to read the specified icon (" + icon.getAbsolutePath() + ")", exception);
             }
         } else {
             getLog().warn("No icon has been specified");
         }
+        String licenseText = project.getModel().getLicenses().get(0).getUrl();
+        if (licenseFullText != null) {
+            try (InputStream stream = new FileInputStream(licenseFullText)) {
+                licenseText = org.xowl.infra.utils.Files.read(stream, org.xowl.infra.utils.Files.CHARSET);
+            } catch (IOException exception) {
+                throw new MojoFailureException("Failed to read the specified license (" + licenseFullText.getAbsolutePath() + ")", exception);
+            }
+        }
+
 
         getLog().info("Writing manifest");
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
@@ -325,7 +339,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             writer.write("\t\"license\": {\n");
             if (!project.getModel().getLicenses().isEmpty()) {
                 writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getName()) + "\",\n");
-                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getUrl()) + "\"\n");
+                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(licenseText) + "\"\n");
             }
             writer.write("\t}\n");
             writer.write("}\n");

@@ -26,7 +26,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.xowl.infra.utils.Base64;
-import org.xowl.infra.utils.Files;
 import org.xowl.infra.utils.TextUtils;
 
 import java.io.*;
@@ -67,7 +66,13 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
      * The path to the icon for the addon
      */
     @Parameter
-    protected String icon;
+    protected File icon;
+
+    /**
+     * The full text for the license
+     */
+    @Parameter
+    protected File licenseFullText;
 
     /**
      * The description of the pricing policy for the addon
@@ -126,18 +131,24 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
     private File writeDescriptor() throws MojoFailureException {
         String iconName = "";
         String iconContent = "";
-        if (icon != null && !icon.isEmpty()) {
-            File directory = new File(project.getModel().getBuild().getDirectory());
-            File fileIcon = new File(directory.getParentFile(), icon);
-            try (InputStream stream = new FileInputStream(fileIcon)) {
-                byte[] bytes = Files.load(stream);
+        if (icon != null) {
+            try (InputStream stream = new FileInputStream(icon)) {
+                byte[] bytes = org.xowl.infra.utils.Files.load(stream);
                 iconContent = Base64.encodeBase64(bytes);
-                iconName = fileIcon.getName();
+                iconName = icon.getName();
             } catch (IOException exception) {
-                throw new MojoFailureException("Failed to read the specified icon (" + icon + ")", exception);
+                throw new MojoFailureException("Failed to read the specified icon (" + icon.getAbsolutePath() + ")", exception);
             }
         } else {
             getLog().warn("No icon has been specified");
+        }
+        String licenseText = project.getModel().getLicenses().get(0).getUrl();
+        if (licenseFullText != null) {
+            try (InputStream stream = new FileInputStream(licenseFullText)) {
+                licenseText = org.xowl.infra.utils.Files.read(stream, org.xowl.infra.utils.Files.CHARSET);
+            } catch (IOException exception) {
+                throw new MojoFailureException("Failed to read the specified license (" + licenseFullText.getAbsolutePath() + ")", exception);
+            }
         }
 
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
@@ -165,7 +176,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
             writer.write("\t\"license\": {\n");
             if (!project.getModel().getLicenses().isEmpty()) {
                 writer.write("\t\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getName()) + "\",\n");
-                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(project.getModel().getLicenses().get(0).getUrl()) + "\"\n");
+                writer.write("\t\t\"fullText\": \"" + TextUtils.escapeStringJSON(licenseText) + "\"\n");
             }
             writer.write("\t},\n");
             writer.write("\t\"pricing\": \"" + (pricing == null ? "" : TextUtils.escapeStringJSON(pricing)) + "\",\n");
