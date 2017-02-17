@@ -20,7 +20,6 @@ package org.xowl.toolkit.packaging;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.model.Dependency;
@@ -30,6 +29,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.xowl.infra.utils.Base64;
+import org.xowl.infra.utils.IOUtils;
 import org.xowl.infra.utils.TextUtils;
 
 import java.io.*;
@@ -201,7 +201,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
             getLog().error(exception);
             throw new MojoFailureException("Failed to move " + targetDistribution1.getAbsolutePath() + " to " + targetDistribution2.getAbsolutePath(), exception);
         }
-        org.xowl.infra.utils.Files.deleteFolder(temp);
+        IOUtils.deleteFolder(temp);
         return targetDistribution2;
     }
 
@@ -312,7 +312,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         String iconContent = "";
         if (icon != null) {
             try (InputStream stream = new FileInputStream(icon)) {
-                byte[] bytes = org.xowl.infra.utils.Files.load(stream);
+                byte[] bytes = IOUtils.load(stream);
                 iconContent = Base64.encodeBase64(bytes);
                 iconName = icon.getName();
             } catch (IOException exception) {
@@ -324,7 +324,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         String licenseText = project.getModel().getLicenses().get(0).getUrl();
         if (licenseFullText != null) {
             try (InputStream stream = new FileInputStream(licenseFullText)) {
-                licenseText = org.xowl.infra.utils.Files.read(stream, org.xowl.infra.utils.Files.CHARSET);
+                licenseText = IOUtils.read(stream, IOUtils.CHARSET);
             } catch (IOException exception) {
                 throw new MojoFailureException("Failed to read the specified license (" + licenseFullText.getAbsolutePath() + ")", exception);
             }
@@ -335,7 +335,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
         File fileDescriptor = new File(targetDirectory, getArtifactName() + ".json");
         try (FileOutputStream stream = new FileOutputStream(fileDescriptor)) {
-            OutputStreamWriter writer = new OutputStreamWriter(stream, org.xowl.infra.utils.Files.CHARSET);
+            OutputStreamWriter writer = new OutputStreamWriter(stream, IOUtils.CHARSET);
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion()) + "\",\n");
             writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getName()) + "\",\n");
@@ -388,7 +388,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         getLog().info("Packaging ...");
         File filePackage = new File(new File(project.getModel().getBuild().getDirectory()), getArtifactName() + ".tar.gz");
         packageTarGz(targetDistribution, filePackage, project.getModel().getArtifactId());
-        org.xowl.infra.utils.Files.deleteFolder(targetDistribution);
+        IOUtils.deleteFolder(targetDistribution);
 
         DefaultArtifactHandler artifactHandler = new DefaultArtifactHandler("xowl-platform");
         artifactHandler.setAddedToClasspath(false);
@@ -453,7 +453,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                 }
                 outputStream.putArchiveEntry(entry);
                 try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(child))) {
-                    IOUtils.copy(bis, outputStream);
+                    org.apache.commons.compress.utils.IOUtils.copy(bis, outputStream);
                 }
                 outputStream.closeArchiveEntry();
             }

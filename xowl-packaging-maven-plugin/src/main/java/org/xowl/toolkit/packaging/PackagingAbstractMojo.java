@@ -33,7 +33,7 @@ import org.eclipse.aether.impl.ArtifactResolver;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
-import org.xowl.infra.utils.Files;
+import org.xowl.infra.utils.IOUtils;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -175,7 +175,7 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
         stream.putNextEntry(entry);
         byte[] bytes;
         try (FileInputStream fileInputStream = new FileInputStream(file)) {
-            bytes = Files.load(fileInputStream);
+            bytes = IOUtils.load(fileInputStream);
         } catch (FileNotFoundException exception) {
             throw new MojoFailureException("Cannot read file " + file.getAbsolutePath());
         }

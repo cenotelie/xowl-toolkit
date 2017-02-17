@@ -26,6 +26,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.xowl.infra.utils.Base64;
+import org.xowl.infra.utils.IOUtils;
 import org.xowl.infra.utils.TextUtils;
 
 import java.io.*;
@@ -133,7 +134,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         String iconContent = "";
         if (icon != null) {
             try (InputStream stream = new FileInputStream(icon)) {
-                byte[] bytes = org.xowl.infra.utils.Files.load(stream);
+                byte[] bytes = IOUtils.load(stream);
                 iconContent = Base64.encodeBase64(bytes);
                 iconName = icon.getName();
             } catch (IOException exception) {
@@ -145,7 +146,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         String licenseText = project.getModel().getLicenses().get(0).getUrl();
         if (licenseFullText != null) {
             try (InputStream stream = new FileInputStream(licenseFullText)) {
-                licenseText = org.xowl.infra.utils.Files.read(stream, org.xowl.infra.utils.Files.CHARSET);
+                licenseText = IOUtils.read(stream, IOUtils.CHARSET);
             } catch (IOException exception) {
                 throw new MojoFailureException("Failed to read the specified license (" + licenseFullText.getAbsolutePath() + ")", exception);
             }
