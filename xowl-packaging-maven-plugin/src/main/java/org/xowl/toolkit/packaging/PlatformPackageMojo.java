@@ -323,8 +323,8 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         }
         String licenseText = project.getModel().getLicenses().get(0).getUrl();
         if (licenseFullText != null) {
-            try (InputStream stream = new FileInputStream(licenseFullText)) {
-                licenseText = IOUtils.read(stream, IOUtils.CHARSET);
+            try (Reader reader = IOUtils.getReader(licenseFullText)) {
+                licenseText = IOUtils.read(reader);
             } catch (IOException exception) {
                 throw new MojoFailureException("Failed to read the specified license (" + licenseFullText.getAbsolutePath() + ")", exception);
             }
@@ -334,8 +334,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
         getLog().info("Writing manifest");
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
         File fileDescriptor = new File(targetDirectory, getArtifactName() + ".json");
-        try (FileOutputStream stream = new FileOutputStream(fileDescriptor)) {
-            OutputStreamWriter writer = new OutputStreamWriter(stream, IOUtils.CHARSET);
+        try (Writer writer = IOUtils.getWriter(fileDescriptor)) {
             writer.write("{\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion()) + "\",\n");
             writer.write("\t\"name\": \"" + TextUtils.escapeStringJSON(project.getModel().getName()) + "\",\n");
@@ -469,7 +468,6 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      *                              Throwing this exception causes a "BUILD FAILURE" message to be displayed.
      */
     private void extractTarGz(File input, File output) throws MojoFailureException {
-        byte[] buffer = new byte[8192];
         try (TarArchiveInputStream inputStream = new TarArchiveInputStream(new GZIPInputStream(new FileInputStream(input)))) {
             while (true) {
                 TarArchiveEntry entry = inputStream.getNextTarEntry();
@@ -485,12 +483,7 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
                     if (!directory.exists() && !directory.mkdirs())
                         throw new MojoFailureException("Failed to extract " + input.getAbsolutePath());
                     try (FileOutputStream fileOutputStream = new FileOutputStream(target)) {
-                        int read = 0;
-                        while (read >= 0) {
-                            read = inputStream.read(buffer, 0, buffer.length);
-                            if (read > 0)
-                                fileOutputStream.write(buffer, 0, read);
-                        }
+                        org.apache.commons.compress.utils.IOUtils.copy(inputStream, fileOutputStream);
                     }
                     if (entry.getMode() == EXECUTABLE_MODE) {
                         if (!target.setExecutable(true, false))

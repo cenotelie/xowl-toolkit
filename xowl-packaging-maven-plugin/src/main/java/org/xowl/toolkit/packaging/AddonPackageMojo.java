@@ -30,7 +30,6 @@ import org.xowl.infra.utils.IOUtils;
 import org.xowl.infra.utils.TextUtils;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -145,8 +144,8 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         }
         String licenseText = project.getModel().getLicenses().get(0).getUrl();
         if (licenseFullText != null) {
-            try (InputStream stream = new FileInputStream(licenseFullText)) {
-                licenseText = IOUtils.read(stream, IOUtils.CHARSET);
+            try (Reader reader = IOUtils.getReader(licenseFullText)) {
+                licenseText = IOUtils.read(reader);
             } catch (IOException exception) {
                 throw new MojoFailureException("Failed to read the specified license (" + licenseFullText.getAbsolutePath() + ")", exception);
             }
@@ -155,7 +154,7 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
         File addonDescriptor = new File(targetDirectory, getArtifactName() + ".json");
         getLog().info("Writing descriptor for addon: " + addonDescriptor.getName());
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(addonDescriptor), Charset.forName("UTF-8"))) {
+        try (Writer writer = IOUtils.getWriter(addonDescriptor)) {
             writer.write("{\n");
             writer.write("\t\"modelVersion\": \"" + TextUtils.escapeStringJSON(MODEL_VERSION) + "\",\n");
             writer.write("\t\"identifier\": \"" + TextUtils.escapeStringJSON(project.getModel().getGroupId() + "." + project.getModel().getArtifactId() + "-" + project.getModel().getVersion()) + "\",\n");

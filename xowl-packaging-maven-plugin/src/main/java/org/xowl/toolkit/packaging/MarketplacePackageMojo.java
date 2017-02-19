@@ -24,13 +24,13 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.xowl.infra.utils.IOUtils;
 import org.xowl.infra.utils.TextUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
+import java.io.Writer;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -91,7 +91,7 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
         File targetDirectory = new File(project.getModel().getBuild().getDirectory());
         File marketplaceDescriptor = new File(targetDirectory, getArtifactName() + ".json");
         getLog().info("Writing descriptor for marketplace: " + marketplaceDescriptor.getName());
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(marketplaceDescriptor), Charset.forName("UTF-8"))) {
+        try (Writer writer = IOUtils.getWriter(marketplaceDescriptor)) {
             writer.write("{\n");
             writer.write("\t\"modelVersion\": \"" + TextUtils.escapeStringJSON(MODEL_VERSION) + "\",\n");
             writer.write("\t\"addons\": [\n");
