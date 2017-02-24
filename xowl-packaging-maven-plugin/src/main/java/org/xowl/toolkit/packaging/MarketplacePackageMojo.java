@@ -116,12 +116,13 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
      * @throws MojoFailureException When the resolution failed
      */
     private File[] retrieveAddons() throws MojoFailureException {
-        File[] result = new File[project.getDependencies().size() * 3];
+        File[] result = new File[project.getDependencies().size() * 4];
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
             result[i++] = resolveArtifact(dependency);
             result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), "", "zip.asc");
             result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), "", "json");
+            result[i++] = resolveArtifact(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion(), "", "json.asc");
         }
         return result;
     }
@@ -159,6 +160,10 @@ public class MarketplacePackageMojo extends PackagingAbstractMojo {
                             stream,
                             fileAddons[i++],
                             dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".descriptor");
+                    zipAddFile(
+                            stream,
+                            fileAddons[i++],
+                            dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".descriptor.asc");
                 }
             }
             return marketplacePackage;
