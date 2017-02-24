@@ -216,10 +216,16 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
      * @throws MojoFailureException When the resolution failed
      */
     private File[] retrieveBundles() throws MojoFailureException {
-        File[] result = new File[project.getDependencies().size()];
+        File[] result = new File[project.getDependencies().size() * 2];
         int i = 0;
         for (Dependency dependency : project.getModel().getDependencies()) {
             result[i++] = resolveArtifact(dependency);
+            result[i++] = resolveArtifact(
+                    dependency.getGroupId(),
+                    dependency.getArtifactId(),
+                    dependency.getVersion(),
+                    getDependencyClassifier(dependency),
+                    getDependencyExtension(dependency) + ".asc");
         }
         return result;
     }
@@ -245,10 +251,20 @@ public class AddonPackageMojo extends PackagingAbstractMojo {
                         "descriptor.json");
                 int i = 0;
                 for (Dependency dependency : project.getModel().getDependencies()) {
+                    String classifier = getDependencyClassifier(dependency);
+                    String extension = getDependencyExtension(dependency);
+                    String name = dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion();
+                    if (!classifier.isEmpty())
+                        name += "-" + classifier;
+                    name += "." + extension;
                     zipAddFile(
                             stream,
-                            fileBundles[i],
-                            dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion() + ".jar");
+                            fileBundles[i++],
+                            name);
+                    zipAddFile(
+                            stream,
+                            fileBundles[i++],
+                            name + ".asc");
                 }
             }
             return addonPackage;

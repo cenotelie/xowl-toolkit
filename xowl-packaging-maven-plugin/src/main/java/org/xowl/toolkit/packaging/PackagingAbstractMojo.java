@@ -97,6 +97,34 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
      * @throws MojoFailureException When the resolution failed
      */
     protected File resolveArtifact(Dependency dependency) throws MojoFailureException {
+        return resolveArtifact(
+                dependency.getGroupId(),
+                dependency.getArtifactId(),
+                dependency.getVersion(),
+                getDependencyClassifier(dependency),
+                getDependencyExtension(dependency));
+    }
+
+    /**
+     * Gets the classifier for the specified dependency
+     *
+     * @param dependency A dependency
+     * @return The classifier
+     */
+    protected String getDependencyClassifier(Dependency dependency) {
+        String classifier = dependency.getClassifier();
+        if (classifier == null)
+            classifier = "";
+        return classifier;
+    }
+
+    /**
+     * Gets the extension for the specified dependency
+     *
+     * @param dependency A dependency
+     * @return The classifier
+     */
+    protected String getDependencyExtension(Dependency dependency) {
         String type = dependency.getType();
         if (type == null)
             type = "jar";
@@ -107,21 +135,7 @@ public abstract class PackagingAbstractMojo extends AbstractMojo {
             if (extension == null)
                 extension = type;
         }
-        String classifier = dependency.getClassifier();
-        if (classifier == null)
-            classifier = "";
-
-        String name = dependency.getGroupId() + "." + dependency.getArtifactId() + "-" + dependency.getVersion();
-        if (!classifier.isEmpty())
-            name += "-" + classifier;
-        name += "." + extension;
-
-        return resolveArtifact(
-                dependency.getGroupId(),
-                dependency.getArtifactId(),
-                dependency.getVersion(),
-                classifier,
-                extension);
+        return extension;
     }
 
     /**
