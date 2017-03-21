@@ -1,10 +1,9 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.xowl.toolkit</groupId>
     <artifactId>xowl-toolkit</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>xOWL Toolkit</name>
     <description>A collection of tools around the xOWL federation platform.</description>
     <url>https://xowl.org/</url>
@@ -30,7 +29,7 @@
         <connection>scm:hg:https://bitbucket.org/xowl/xowl-toolkit</connection>
         <developerConnection>scm:hg:ssh://hg@bitbucket.org:xowl/xowl-toolkit</developerConnection>
         <url>https://bitbucket.org/xowl/xowl-toolkit</url>
-        <tag>HEAD</tag>
+        <tag>v1.0.0</tag>
     </scm>
     <distributionManagement>
         <snapshotRepository>
