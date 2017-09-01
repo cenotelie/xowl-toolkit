@@ -281,8 +281,10 @@ public class PlatformPackageMojo extends PackagingAbstractMojo {
      */
     private void copyResource(File origin, File target) throws MojoFailureException {
         if (origin.isDirectory()) {
-            if (!target.mkdirs())
-                throw new MojoFailureException("Failed to copy " + origin.getAbsolutePath() + " to " + target.getAbsolutePath());
+            if (!target.exists()) {
+                if (!target.mkdirs())
+                    throw new MojoFailureException("Failed to copy " + origin.getAbsolutePath() + " to " + target.getAbsolutePath());
+            }
             File[] children = origin.listFiles();
             if (children == null)
                 return;
