@@ -3,11 +3,11 @@
     <parent>
         <groupId>org.xowl.toolkit</groupId>
         <artifactId>xowl-toolkit</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>1.0.1</version>
     </parent>
     <artifactId>xowl-packaging-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.1</version>
     <name>xOWL Toolkit - Packaging Maven Plugin</name>
     <description>Implements custom packaging for the xOWL Federation Platform</description>
     <dependencies>

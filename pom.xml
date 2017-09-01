@@ -3,7 +3,7 @@
     <groupId>org.xowl.toolkit</groupId>
     <artifactId>xowl-toolkit</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.1</version>
     <name>xOWL Toolkit</name>
     <description>A collection of tools around the xOWL federation platform.</description>
     <url>https://xowl.org/</url>
@@ -29,7 +29,7 @@
         <connection>scm:hg:https://bitbucket.org/xowl/xowl-toolkit</connection>
         <developerConnection>scm:hg:ssh://hg@bitbucket.org:xowl/xowl-toolkit</developerConnection>
         <url>https://bitbucket.org/xowl/xowl-toolkit</url>
-        <tag>HEAD</tag>
+        <tag>v1.0.1</tag>
     </scm>
     <distributionManagement>
         <snapshotRepository>
