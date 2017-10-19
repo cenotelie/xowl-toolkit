@@ -3,7 +3,7 @@
     <groupId>org.xowl.toolkit</groupId>
     <artifactId>xowl-packaging-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>2.0.0</version>
     <name>xOWL Toolkit - Packaging Maven Plugin</name>
     <description>Implements custom packaging for the xOWL Federation Platform</description>
     <url>https://xowl.org/</url>
@@ -29,7 +29,7 @@
         <connection>scm:hg:https://bitbucket.org/xowl/xowl-toolkit</connection>
         <developerConnection>scm:hg:ssh://hg@bitbucket.org:xowl/xowl-toolkit</developerConnection>
         <url>https://bitbucket.org/xowl/xowl-toolkit</url>
-        <tag>HEAD</tag>
+        <tag>v2.0.0</tag>
     </scm>
     <distributionManagement>
         <snapshotRepository>
