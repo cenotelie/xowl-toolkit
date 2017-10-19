@@ -17,6 +17,7 @@
 
 package org.xowl.toolkit.packaging;
 
+import fr.cenotelie.commons.utils.IOUtils;
 import org.apache.maven.artifact.handler.ArtifactHandler;
 import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
 import org.apache.maven.model.Dependency;
@@ -33,7 +34,6 @@ import org.eclipse.aether.impl.ArtifactResolver;
 import org.eclipse.aether.resolution.ArtifactRequest;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.resolution.ArtifactResult;
-import org.xowl.infra.utils.IOUtils;
 
 import javax.inject.Inject;
 import java.io.File;
