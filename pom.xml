@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.xowl.toolkit</groupId>
-    <artifactId>xowl-toolkit</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>xowl-packaging-maven-plugin</artifactId>
+    <packaging>maven-plugin</packaging>
     <version>1.0.2-SNAPSHOT</version>
-    <name>xOWL Toolkit</name>
-    <description>A collection of tools around the xOWL federation platform.</description>
+    <name>xOWL Toolkit - Packaging Maven Plugin</name>
+    <description>Implements custom packaging for the xOWL Federation Platform</description>
     <url>https://xowl.org/</url>
     <licenses>
         <license>
@@ -37,9 +37,34 @@
             <url>https://nexus.cenotelie.fr/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
-    <modules>
-        <module>xowl-packaging-maven-plugin</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-core</artifactId>
+            <version>3.3.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-plugin-api</artifactId>
+            <version>3.3.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.plugin-tools</groupId>
+            <artifactId>maven-plugin-annotations</artifactId>
+            <version>3.5</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.13</version>
+        </dependency>
+        <dependency>
+            <groupId>fr.cenotelie.commons</groupId>
+            <artifactId>commons-utils</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
             <plugin>
@@ -126,6 +151,14 @@
                     <releaseProfiles>release</releaseProfiles>
                     <goals>deploy</goals>
                     <pushChanges>false</pushChanges>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>3.3</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
         </plugins>
