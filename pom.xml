@@ -26,9 +26,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:hg:https://bitbucket.org/xowl/xowl-toolkit</connection>
+        <connection>scm:hg:https://bitbucket.org/cenotelie/xowl-toolkit</connection>
         <developerConnection>scm:hg:ssh://hg@bitbucket.org:xowl/xowl-toolkit</developerConnection>
-        <url>https://bitbucket.org/xowl/xowl-toolkit</url>
+        <url>https://bitbucket.org/cenotelie/xowl-toolkit</url>
         <tag>HEAD</tag>
     </scm>
     <distributionManagement>
