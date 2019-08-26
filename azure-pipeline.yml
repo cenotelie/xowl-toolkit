@@ -1,0 +1,37 @@
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)'
+
+stages:
+- stage: Build
+  displayName: Build
+  jobs:  
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: DownloadSecureFile@1
+      name: gpgKey
+      inputs:
+        secureFile: 'cenotelie.gpg.key'
+    - task: DownloadSecureFile@1
+      name: mvnSettings
+      inputs:
+        secureFile: 'settings.xml'
+    - script: |
+        cat '$(gpgPass)' | gpg --batch --import '$(gpgKey.secureFilePath)'
+    - task: Maven@3
+      inputs:
+        mavenPomFile: 'pom.xml'
+        jdkVersionOption: '1.8'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: false
+        testResultsFiles: '**/TEST-*.xml'
+        goals: 'deploy'
+        options: '--settings $(mvnSettings.secureFilePath) "-Dgpg.passphrase=$(gpgPass)"'
