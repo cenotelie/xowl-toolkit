@@ -26,7 +26,7 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:hg:https://github.com/cenotelie/xowl-toolkit</connection>
+        <connection>scm:git:https://github.com/cenotelie/xowl-toolkit</connection>
         <developerConnection>scm:git:ssh://hg@github.com:cenotelie/xowl-toolkit</developerConnection>
         <url>https://github.com/cenotelie/xowl-toolkit</url>
         <tag>HEAD</tag>
@@ -61,7 +61,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>1.18</version>
+            <version>1.19</version>
         </dependency>
         <dependency>
             <groupId>fr.cenotelie.commons</groupId>
