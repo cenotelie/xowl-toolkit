@@ -1,6 +1,6 @@
 # xOWL Toolkit #
 
-[![Build Status](https://dev.azure.com/cenotelie/cenotelie/_apis/build/status/cenotelie.xowl-toolkit?branchName=master)](https://dev.azure.com/cenotelie/cenotelie/_build/latest?definitionId=3&branchName=master)
+[![Build Status](https://dev.azure.com/cenotelie/cenotelie/_apis/build/status/cenotelie.xowl-toolkit?branchName=master)](https://dev.azure.com/cenotelie/cenotelie/_build/latest?definitionId=5&branchName=master)
 
 xOWL Toolkit is a Maven plugin for the packaging of xOWL-related products.
 This plugin can be used to packaged xOWL platforms (and derived) based on [Apache Felix](http://felix.apache.org/), xOWL Platform Add-ons and xOWL Marketplaces.
